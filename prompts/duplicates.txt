@@ -1,0 +1,15 @@
+Here is the product task backlog ({{taskCount}} tasks):
+
+```csv
+{{csv}}
+```
+
+Known duplicate IDs from the data: {{knownDuplicates}}
+
+Please find:
+1. **Exact duplicates**: Tasks with the same ID that appear multiple times (list conflicts in metadata).
+2. **Semantic duplicates**: Different tasks that describe the same or overlapping work (different IDs but similar intent).
+3. **Related clusters**: Tasks that are distinct but could be grouped into a single initiative or batch.
+
+For each finding, list the task IDs and explain what's duplicated or related.
+Recommend which to keep, merge, or deprioritize.

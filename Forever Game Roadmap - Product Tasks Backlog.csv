@@ -1,0 +1,581 @@
+JIRA ,ID,Reporter,Description/Problem,TEMP: CK NOTE,Priority,Status,Assigned POD,Live version,Group,Type,Prepro work,Appareance,Source,Risk,Solution links,Comments,Jesus SUGGESTION,AI SUGGESTION,AI SUGGESTION,Column 20
+,ID-OAA,Jesús Bartus Sancho,There's no tutorial step for changing the name of a player,,,BLOCK,,,Social,Bug,1 - Mid,Uncommon,Gamefeedback,Low,Figma link,There's old UX work for this,,NO COMMENTS,,
+,ID-OZY,Jesús Bartus Sancho,Messages on NW perks are confusing for players,,,BLOCK,,,Networth,,,,,,,,,,,
+TOP-94623,ID-RQY,Jaime Fraina,"Daily Treats speed up
+
+The animation sequence of...
+- Treat doober popping out from the Day reward
+- Treat doober flying to the progress bar at the top
+- Progress bar increasing
+...should be faster and feel a part of one continuous flow.
+
+Animation team should explore options to speed the sequence up, proposal is not intended to be prescriptive.",reviewed!,P0,Pod Working,Pod 28,,Timings,Improvement,1 - Mid,Daily,Product team,Low,,"Time to roll metrics pre and post launch and also time spent in daily treats pre and post launch. 
+
+Number of people that start rolling after starting a session pre vs post. ",,NO COMMENTS,,
+,ID-DGQ,Dan Wilkins,"We have a mind blowing number of hitches/frame stutters when doing almost anything
+We need to do some investigation, pick top 5 places this is happening and go fix it. ",reviewed!,P0,Prioritized,,,Bug,Bug,0 - Low,All Sessions,Other teams,Low,,,,NO COMMENTS,,
+,ID-VMX,Dan Wilkins,"Board Bundle Optimization - Improving how we bundle boards will help significantly improve startup times, shutdown times, switching targets in shutdown times, returning to board moments, and more! See Dan's technical doc for more info here: https://docs.google.com/document/d/1Bktf6VocYHK6bi0Ynaa99Pc4G5s2iHiGRWso0IdTC-Y/edit?tab=t.0#heading=h.vqgd3n1lk3v0 ",reviewed!,P0,Prioritized,,,Timings,Improvement,2 - High,All Sessions,Other teams,High,,,,NO COMMENTS,,
+,ID-CDO,Jesús Bartus Sancho,Losing one day in QW is really punishing. You end basically almost finishing the bar with only 1 point left and feels really bad. Should we allow to miss one day?,reviewed!,P0,Pod Working,Pod 28,,QW,,,,,,,,,NO COMMENTS,,
+,ID-JCA,Christian Kurlemann,Daily treats 30 days reward could be better,reviewed!,,BLOCK,,,Other,Improvement,0 - Low,Daily,Product team,High,,"live events team did an update on Daily calendar on Ag 20th
+https://scopely.slack.com/archives/C06LCL387PV/p1755525046005629",,,,
+TOP-94600,ID-BOE,Jesús Bartus Sancho,_Add search bar to large selection list (select region),,,BLOCK,,,UI/UX,Improvement,0 - Low,Daily,Gamefeedback,Low,,,,,,
+,ID-HUY,Pedro Bravo,"Album Complete (the highest reward moment in the game) is in need of love""",,,BLOCK,,,Album,Improvement,0 - Low,Sometimes,Product team,Low,,"Note from Christian: yes for sure but Bruno & team have this on roadmap, unless something changes",,,,
+,XZH,Jaime Fraina,"For MRG moments when Mr. M comes out, rig different characters for different events (and have a config option to choose what character is used for that MRG) and then make the rigged characters themable via TGE set up, Mr. M with a wizard hat?",,,BLOCK,,,MRG,Improvement,0 - Low,All Sessions,Product team,Low,,,,,,
+,ID-IPK,Pedro Bravo,"As a player, I want to be alerted the moment I drop out of the Upgrade Zone SO THAT I have a chance to return and not miss my chance!  Design can be found here",,,BLOCK,,,Tournaments,Improvement,0 - Low,Sometimes,Gamefeedback,High,,Design can be found here,,,,
+,ID-GVH,Lily Li,Better player representation of single commodity gacha (it feels bad to open a chest and get a little bit of dice),,,BLOCK,,,MRG,,,,,High,,This is in the works by LRK?,,,,
+,ID-CBZ,Carl Coss,Landmark building anim not playing Vfx cleanup - need clarity from art on what this is,,,BLOCK,,,Bug,,,,,,,,,,,
+,ID-LUS,Joe Rosenthal,"Make it easier to find the Add Friend link, should the link send a friend request instead of auto-adding you. ",reviewed!,P1,Prioritized,,,UI/UX,Improvement,1 - Mid,Sometimes,Gamefeedback,Low,,"How many friends are being added pre and post launch? The theory is that right now, the process is too complicated and people give up while trying to figure it out and this will make the process smoother leading to more friend invites. ",,NO COMMENTS,,
+TOP-94630,ID-OTZ,Jesús Bartus Sancho,"Use case : its more about how players share this sticker for exchange in the community with an screenshot 
+Add set logo to bottom of single sticker view if you own it. Consider adding sticker number in the set as well. If you don't own the sticker, push text down (and shrink it) and add logo underneath",reviewed!,P2,Prioritized,,,Album,Improvement,1 - Mid,Sometimes,Product team,Low,,,,NO COMMENTS,,
+,ID-KMW,Jesús Bartus Sancho,"Remove the Mr. M animation + doober splash for ""large"" MRG reward amounts (e.g I get 100 dice and I get an additional beat on the reward screen). This isn't actually that much dice for me and just makes the sequence longer",NOW - NEEDS DESIGN,P1,Prioritized,,,MRG,Improvement,1 - Mid,Sometimes,Other teams,High,,,,Merge,Fold into ID-ADC (doober overhaul) and ID-SYU (MRG timings review),
+TOP-104932,ID-YYS,Pedro Bravo,"When I get a new sticker, show me the progress bar for its set fill up too in MRG, with the set number. Only show this on 8/9 progress. Ji explored this, not the same design as what we want but similar see: https://www.figma.com/board/6pWBus3spP4wAxUqU4IW4C/RQ-Sticker-improvement-Review?node-id=1-152&t=i9lnA38cJkgLVd02-11",reviewed!,P1,Prioritized,,,Album,Improvement,1 - Mid,Sometimes,Other teams,Low,,Does playtime increase after seeing this message? Does conversion increase after seeing this within the next day or two? Does gifting/trading increase because players realize they are close to finishing a set? Does trading start earlier in the album because of this? ,,NO COMMENTS,,
+TOP-94632,ID-THE,Jesús Bartus Sancho,Respond to a sticker sent with an emoji,reviewed!,P1,Pod Working,,,Album,Improvement,1 - Mid,Uncommon,Product team,Low,,"What percentage of sticker gifts/trades is this post-gift/post-trade emoji used? There is already the ability to send emoji's DURING a trade but this is for after. 
+
+Are sticker gifting or trading increasing pre/post vs past albums at the same point. ",,NO COMMENTS,,
+TOP-94634,ID-SYU,Jesús Bartus Sancho,"Review MRG timings - Look through the sequence of MRG and see where there's room to remove deadtime. Ex. Get staggering of rewards closer together
+
+More details on RQv2 - https://scopely.atlassian.net/wiki/spaces/TOP/pages/113419045/Royal+Quality+v2+GDD+-+WIP#RoyalQualityv2GDD-WIP-P1-RewardFlowSpeedup",reviewed!,P1,Prioritized,,,MRG,Improvement,0 - Low,Sometimes,Product team,Low,,"Track all major KPIs pre/post launch (roll sink, churn, retention, monetization, session length, etc.) ",,NO COMMENTS,,
+TOP-106182,ID-KZI,Art Team,"Art team feels strongly about performing a clouds investigation. Clouds to and from shutdown/bankheist look really bad. Create new outro clouds that are shorter, to get players back to rolling faster. WE NEED TO GET PLAYERS BACK TO THE GAME FASTER FROM RAILROADS. ",reviewed!,P1,Pre-Pro Ready,Pod 28,,SD/BH,Improvement,0 - Low,All Sessions,Other teams,Low,,,,NO COMMENTS,,
+,ID-OMU,Bruno Patatas,"Bots have no invite button: create bots with open profiles, you can invite them but never respond",reviewed!,P1,Pre-Pro Ready,Pod10,,Bots,Bug,0 - Low,Sometimes,Product team,Low,,,,NO COMMENTS,,
+TOP-94615,ID-TZE,Art Team,"Can we have a different loading icon than a duck? It’s so random - either we just get rid of it or we should have something that’s themed with the season.Mustache that curls up and does the wave, OR tophat that jumps up and down,idk. HAVE FUN. ",,P2,Pre-Pro Ready,Pod3,,Delight,Improvement,0 - Low,All Sessions,Other teams,Low,,I believe LRK is going to own this one as part of seasonality,,NO COMMENTS,,
+,ID-RAN,Jesús Bartus Sancho,"""there;s currently a cap on how many times you can change your name and it's not being messaged https://scopely.slack.com/archives/C02JC5M2K17/p1736244426339999?thread_ts=1736240569.687429&cid=C02JC5M2K17""",,P2,Pre-Pro Ready,Pod4,,Other,Bug,1 - Mid,Uncommon,Gamefeedback,Low,Figma link,There's old UX work for this,,NO COMMENTS,,
+TOP-94590,ID-QXF,Jesús Bartus Sancho,"Let's have a conversation about how often the tournaments update the player's rank
+2 things:
+1. It feels bad and confusing to earn points and then see your rank go down.
+2. In competitive tournaments, it's annoying to open and reopen that UI constantly to see if your spot changed. Could notifications help?
+
+Could we update the rank while a player is in a shutdown or bankheist, before they go back to the roll screen and then update it when you get more points. (this is to avoid seeing your rank go DOWN when you earn points.) Please reduce cost of the refreshing and if possible, increase the frequency of the refreshing. ",reviewed!,P1,Pre-Pro Ready,Pod3,,Tournaments,Improvement,1 - Mid,All Sessions,Product team,Low,,,,NO COMMENTS,,
+TOP-94635,ID-FHP,Lily Li,Ability to initiate autoroll during the jail sequence AND coin flip. Roll button should look like it does if you were already on auto-roll when you entered it,NOW,P1,Pre-Pro Ready,Pod 28,,Rolling,Improvement,0 - Low,Sometimes,Gamefeedback,Low,,,,NO COMMENTS,,
+,ID-ADC,Jaime Fraina,"DOOBER OVERHAUL. There are many ways to improve the doobering system and we have several product tasks that all fall into this overhaul. We want to:
+Speed up doobers 
+Make them more satisfying to see/hear/feel
+Make it clearer where they are going 
+Match our comps in terms of quality 
+Use less MRG and use more direct doobering when possible
+Much more! We'll link to a full design in the solutions column ",reviewed!,P1,Prioritized,,,MRG,Improvement,2 - High,All Sessions,Product team,High,,"Along with tracking all major KPIs pre/post launch, we want to ask CSAT questions via surveys to see if players feel like the game is going at their pace. And whether they agree that the game's reward moments reflect the rewards given. ",,NO COMMENTS,,
+,ID-FNQ,Tucker Elliott,"1. Many players regularly heist inactive players, making the game feel dead.
+This happens because heists are “pending” until the player logs back in. And a churned player isn’t going to log in, so the game still thinks they have enough money to be heisted.
+The fix: Players who have at least {10} pending heists are ineligible to be heisted again.
+Size: XS",reviewed!,P1,Prioritized,,,SD/BH,,,,,,,,,NO COMMENTS,,
+TOP-94605,ID-DZV,Jesús Bartus Sancho,"Rolling doubles in jail doesn't contribute to the roll doubles in quick win and that feels lame
+https://scopely.slack.com/archives/C02JC5M2K17/p1717432185396549",,P2,Pre-Pro Ready,,,QW,Bug,0 - Low,Daily,Product team,Low,,,,NO COMMENTS,,
+,ID-IVI,Tucker Elliott,"2. Having more friends massively increases the number of times you get heisted per day, disincentivizing having friends.
+The fix: There’s currently a heist cooldown system, where Player A cannot heist Player B for X hours after heisting them. So, just make X bigger when Player B has more friends.
+That way, if player B has few friends Player A can heist him again after 2 or 3 hours. But if player B has a ton of friends Player A can’t heist him again for another day or two.
+Scales nicely with friend count!",reviewed!,P1,Prioritized,,,SD/BH,,,,,,,,,NO COMMENTS,,
+TOP-94616,ID-KSX,Pedro Bravo,"Tap on a building to zoom in on it, tap again to zoom back out (or if you build a landmark it'll go over to that landmark as it normally does). Including this functionality on board complete.",,P2,Pre-Pro Ready,,,Delight,Improvement,0 - Low,All Sessions,Product team,Low,,,,NO COMMENTS,,
+TOP-94620,ID-DPA,Carl Coss,"Improve pill intro cascade: Yes the pills intro one by one from top to bottom (cascade). I think this task was to accelerate the cascade so the interval between pills appearing gets shorter going down the stack. So the overall the time is reduced and it looks better and is more consistent with other areas of the game. Check this is done in all scenarios (including after railroad game or coming back from other game) 
+",reviewed!,P2,Pre-Pro Ready,,,Timings,Improvement,0 - Low,All Sessions,Other teams,Low,,,,NO COMMENTS,,
+TOP-94625,ID-HUQ,Dan Wilkins,"CHEATING FIX. Fix multiplier results in plinko. If I roll on x100 and it goes down to 1, I roll again, I go back to x100 and I get a different results. Too easy to cheat. ",,P2,Pre-Pro Ready,,,Other,Bug,0 - Low,Uncommon,Product team,Low,,Measure completion rates for cheaters pre and post. Do we have less overall completers after this change vs a normal event? Is the distribution in terms of how many players get a jackpot for a level drop after this change? Is there a difference in the overall points per chip in prize drops with the same level (ex. so sticker drop vs old sticker drop),,NO COMMENTS,,
+TOP-94626,ID-KYZ,Katie Tiller,"When landing on a Rent Due puck that triggers the rent due sequence, scrim is cutting off part of cash doober.",,P2,Pre-Pro Ready,,,UI/UX,Bug,0 - Low,All Sessions,Product team,Low,,This might be fixed by the rent due overhaul in 1.61,,NO COMMENTS,,
+TOP-94627,ID-GEU,Carl Coss,"many Emojis anims in inventory cut off or are missing frames - bug. See spiderman dropping in from the top and going back up as an example of cutting off. Why does this happen? Or Mr. Mr and the bushes of money (like Homer Simpson) these are cutting off early. First time you enter the emoji page it is cut off, when you switch pages and come back it works just fine. ",,P2,Pre-Pro Ready,,,Cosmetics,Bug,0 - Low,Sometimes,Product team,Low,,,,NO COMMENTS,,
+TOP-94628,ID-KIM,Pedro Bravo,Allow to unmute sound when going through album complete. Sound for album complete not timed correctly with dance. The horns should be synced with the times that Mr. M shoots out his arms. ,,P2,Pre-Pro Ready,,,Album,Bug,0 - Low,Uncommon,Product team,Low,,,,NO COMMENTS,,
+TOP-94637,ID-DUQ,Art Team,Update landmark building VFX. (Art team to determine what this means) ,,P2,Pre-Pro Ready,,,Delight,Improvement,0 - Low,All Sessions,Other teams,Low,,,,NO COMMENTS,,
+TOP-94638,ID-LFM,Carl Coss,Plinko outro - lets add one in. ,,P2,Pre-Pro Ready,,,Other,Improvement,0 - Low,Sometimes,Other teams,Low,,,,NO COMMENTS,,
+TOP-94639,ID-EIR,Carl Coss,Animation improvements to Color set complete hotel sequence - Ask Carl C. ,,P2,Pre-Pro Ready,,,Delight,Improvement,0 - Low,Sometimes,Other teams,Low,,,,NO COMMENTS,,
+TOP-94640,ID-OLN,Joe Rosenthal,"Dig intro/outro should animate out and in all the UI (pills, store, milestone bar, all of it) look at boutique intro and outro for reference. Check other minigames to make them all consistent in this respect.  ",,P2,Pre-Pro Ready,,,Timings,Improvement,0 - Low,Daily,Product team,Low,,,,NO COMMENTS,,
+TOP-94814,ID-FVO,Pedro Bravo,"during new user tutorial, Mr. M. says speech bubbles while on the train - everything BUT him is animated and it looks uncanny. Make him move like the rest of the scene, like blinking? Something please. ",,P2,Pre-Pro Ready,,,FTUE,Improvement,0 - Low,Uncommon,Product team,Low,,Do more players make it past this step in the FTUE after we fix this? ,,NO COMMENTS,,
+TOP-94594,ID-KMI,Tucker Elliott,"Improve building sequence and timings (Tucker Elliott ) (Allow players to spam through build faster, while retaining the quality of animations)",reviewed!,P1,Pre-Pro Ready,,,Timings,Improvement,1 - Mid,Daily,Other teams,Low,Link,,,NO COMMENTS,,
+,ID-KPR,Tucker Elliott,"3. Bot Heists don’t seem to be working as intended
+Bot Heists are supposed to kick in to make sure you’re heisted at least 3 times a day, but the median player isn only getting heisted once a day despite having enough money to be heist-eligible.
+Need to explore the bot heist system to figure out why this is happening, and patch it.
+Size: Unknown, we're not sure why system doesn’t work.",reviewed!,P1,Prioritized,,,SD/BH,,,,,,,,,NO COMMENTS,,
+TOP-94633,ID-LPS,Pedro Bravo,Add timeline notification for gifted stickers after you've opened them. (P2?) Consider flavor text depending on if the gift helped you complete the set/album ,reviewed!,P1,Pod Working,Pod 28,,Album,Improvement,1 - Mid,Sometimes,Product team,Low,,"What percentage of sticker gifts/trades is this post-gift/post-trade emoji used? There is already the ability to send emoji's DURING a trade but this is for after. 
+
+Are sticker gifting or trading increasing pre/post vs past albums at the same point. ",,NO COMMENTS,,
+,ID-YWU,Jesús Bartus Sancho,"Make multiplier behavior (interaction b/w multiplier changing when currency balance reduces) consistent across all multipliers (mini-games, normal rolling)",reviewed!,P2,Pod Working,Pod 28,,Rolling,Improvement,1 - Mid,Daily,Gamefeedback,Low,Figma Exploration,Assess when it's happening in the game and give recommendation on any changes,,NO COMMENTS,,
+TOP-94612,ID-WKS,Pedro Bravo,"When gifting friends in coop, tap to skip option and generally speed up gifting sequence. ",reviewed!,P1,Pre-Pro Ready,,,Timings,Improvement,0 - Low,Sometimes,Product team,Low,,,,NO COMMENTS,,
+,ID-NMB,Jesús Bartus Sancho,Cosmetic shelf pill/notification seems unnecessary - remove red dot on Showroom after receiving a cosmetic that you literally unboxed a second ago,reviewed!,P2,Pre-Pro Ready,,,Cosmetics,Improvement,1 - Mid,Sometimes,Gamefeedback,Low,,,,NO COMMENTS,,
+TOP-108310,ID-PKG,Jesús Bartus Sancho,Check when autorroll stops without reasons,reviewed!,P1,Pod Working,Pod 28,,Rolling,Improvement,0 - Low,All Sessions,Product team,Low,,Assess when it's happening in the game and give recommendation on any changes,,NO COMMENTS,,
+,ID-DOA,Jesús Bartus Sancho,Fix multiple finger zoom in board view,,P2,Prioritized,Pod3,,Bug,Bug,0 - Low,All Sessions,Product team,Low,,,,NO COMMENTS,,
+,ID-FZU,Jesús Bartus Sancho,Remove/Improve weird jump cosmetics does when scrolling the shelf,,P2,Prioritized,Pod3,,Cosmetics,Improvement,0 - Low,Sometimes,Product team,Low,,,,NO COMMENTS,,
+,ID-YNG,Jesús Bartus Sancho,Fix UI overall alignment Events / Store / Offers... with the new layout for TNM and NW,,P2,Prioritized,Pod3,,UI/UX,Bug,0 - Low,Daily,Product team,Low,,,,NO COMMENTS,,
+,ID-FRR,Jesús Bartus Sancho,Improve loading of cosmetics in the shelf (show loading spinners or preload),,P2,Prioritized,Pod4,,Cosmetics,,,,,,,,,NO COMMENTS,,
+TOP-94629,ID-CBC,Dan Wilkins,User should be able to tap their dice to go to the Showroom to change them. (needs follow up with Kelly and Pod 11),NOW,P1,Pod Working,Pod 28,,Cosmetics,Improvement,0 - Low,Sometimes,Gamefeedback,Low,,"How often do players tap on the dice to open this menu and then immediately close the menu (within 2 seconds). If this is a high number like even 10% of the time, we should consider turning off this feature. ",,NO COMMENTS,,
+,ID-KSN,Tucker Elliott,"4. There are protections to prevent Player A from heisting Player B too often, but they break if Player A is performing >10 heists a day.
+This is because Player A’s heist cooldown list is only 10 entires long. So if you heist 11 people, it erases the first record and you can heist whoever used to be there even if the cooldown isn’t
+The fix: Just make the heist cooldown list longer. 20 people? 30?
+Size: XS",reviewed!,P1,Prioritized,,,SD/BH,,,,,,,,,NO COMMENTS,,
+,ID-GUQ,Jesús Bartus Sancho,Trigger and watch dice & token animations on preview screen,reviewed!,P2,Prioritized,,,Cosmetics,Improvement,2 - High,Sometimes,Gamefeedback,Low,,Laurence worked on this already,,NO COMMENTS,,
+,ID-FVT,Lily Li,Pay rent animation feels bad the longer you play -- consider shortening it for players who have played for a while,NEEDS DESIGN,P1,TODO,,,Timings,,,,,High,,,,Keep Triage,High risk; missing prepro/appearance; needs design on contextual shortening,
+,ID-LEN,Jesús Bartus Sancho,Make popup closing instantaneous. Delete all close animations in the game,NOW - NEEDS DESIGN,P1,Prioritized,,,Timings,Improvement,1 - Mid,All Sessions,Product team,High,,,,Merge,Overlaps active ID-CZC + ID-ZSM (popup close work); fold in as scope extension,
+,ID-TVK,Lily Li,Update board report to be a scanable social report of what happened while you were away. Should feel different than timeline. Only appear when there's new info,NEEDS DESIGN,P1,TODO,,,Social,,,,,High,,,,Keep Triage,High risk; needs full design; must feel different from timeline,
+,ID-UFG,Pedro Bravo,"As a player, I want my League-related accomplishments to be reflected in my Tycoon Card SO THAT my League Tier is cemented as part of my identity. Design can be found here",NOW - NEEDS DESIGN,P1,Prioritized,,,Tournaments,,,,,,,Design can be found here,,Keep Triage,Design exists but missing prepro/risk/appearance; needs scoping,
+,ID-SMT,Keely Portsmouth,"Implement NATIVE keyboards for iOS/Android, thus modernizing the game and improving usability. See thread from Keely here https://scopely.slack.com/archives/C02JC5M2K17/p1760028331868219 ",NOW - NEEDS DESIGN,P1,Prioritized,,,UI/UX,,,,,,,,,Discard,Too big — full technical initiative needing its own discovery epic,
+Linked to ID-VCO,ID-CSQ,Christian Kurlemann,"Smarter board re-use logic. Allow us to give a weight to boards, and influence which boards you see based on what you've seen so far",reviewed!,P1,Prioritized,,,Delight,Improvement,,,,,,,,NO COMMENTS,,
+,ID-SWT,Christian Kurlemann,"One button Copying of Missing and Dupe stickers. At ALBUM level, SET level, and individual STICKER level (formatted for easy text pasting into discord, FB, Slack, Text, etc)",reviewed!,P1,Prioritized,,,Album,Improvement,,,,,,,,NO COMMENTS,,
+,ID-DOD,Jaime Fraina,Don’t show the “out of rolls” popups when I run out of enough rolls for the multiplier. Just lower the multiplier and don’t show the pop up until I’m actually out of dice. Need to sync with monetization team to give them a heads up ,NOW,,BLOCK,,,Other,Improvement,0 - Low,Daily,Product team,High,,Note from Christian: sync/ w/ monetization as part of larger initiative,,,,
+,ID-CZC,Jaime Fraina,Consistent popup close positioning. Ive noticed some use the bottom center and some use the top right. and it makes this even worse.,reviewed!,P1,Pod Working,,,UI/UX,Improvement,0 - Low,All Sessions,Gamefeedback,High,,,,NO COMMENTS,,
+TOP-84832,ID-XBS,Jesús Bartus Sancho,"Add an option to change your token when inspecting it on your own tycoon card through the main screen HUD""",reviewed!,P2,Pre-Pro Ready,,,Cosmetics,Improvement,1 - Mid,Sometimes,Product team,Low,Slack link,Figma link,,NO COMMENTS,,
+TOP-94622,ID-OME,Art Team,"Update New York landmark Models and board to raise the board quality (CANNOT have any performance impact, if anything it should stay the same or improve the performance of the game) Consider New York Nights.  ",reviewed!,P1,Pod Working,,,FTUE,Improvement,0 - Low,Uncommon,Other teams,High,,"Pod 2 completed a new version of the NYC Day, Night, and Tutorial boards complete with landmarks, but the quality bar isn't where it needs to be. This task is on hold until the Forever Game Board team can pick it up. 
+
+Does the FTUE funnel change with this pre/post? AKA how many players make it through the funnel, do they stick around longer? 
+Does player churn/retention change over the long term? 
+Do monetization metrics change because of this? 
+Does ANYTHING change? We need to know it all. Please help Jaime <3 ",,NO COMMENTS,,
+TOP-94599,ID-AQQ,Bruno Patatas,"Add ""New"" friend label to league points leaderboard next to the name of the new friend (this is to make it more consistent with networth leaderboard) and remove the red pip after you have a friend added since you already are aware that this friend was added.  ",,P2,Prioritized,,,Social,Improvement,0 - Low,Daily,Product team,Low,,,,NO COMMENTS,,
+,ID-IDI,Jaime Fraina,"If a user didn’t progress at all in racers or partners (starting a solo race and not playing for any of the races and then logging in after the event ends) means you have to watch 3 races, results, and final results, which takes minutes of time just to see that you didn’t earn much. See video here - https://scopely.slack.com/archives/C02JC5M2K17/p1756156365530749",reviewed!,P1,Prioritized,,,Timings,Improvement,2 - High,All Sessions,Other teams,Low,,,,NO COMMENTS,,
+TOP-94636,ID-ULW,Jaime Fraina,"TRN points from Bank Heist and Shutdown reentrancy are never shown to the user. If it was enough to earn a TRN bar reward, the MRG Reward Screen is shown with no context. It's a very confusing flow, some design exploration will be needed. One solution could be to move the BH/SD gameplay to the end of the startup flow instead of start.  GDD LINK",,P2,Prioritized,,,Tournaments,Improvement,0 - Low,Sometimes,Product team,Low,,,,NO COMMENTS,,
+,ID-KNW,Stefanie Bollen,"Prize box consistency pass (art team entry, not sure what this means) ",,P2,Prioritized,,,MRG,Improvement,1 - Mid,All Sessions,Other teams,Low,,,,NO COMMENTS,,
+,ID-RQY,Pedro Bravo,"Daily Treats speed up
+
+The animation sequence of...
+- Treat doober popping out from the Day reward
+- Treat doober flying to the progress bar at the top
+- Progress bar increasing
+...should be faster and feel a part of one continuous flow.
+
+Animation team should explore options to speed the sequence up, proposal is not intended to be prescriptive.",reviewed!,P1,Pod Working,Pod 28,,Timings,Improvement,0 - Low,Sometimes,Product team,Low,,,,NO COMMENTS,,
+,ID-JAV,Christian Kurlemann,"Review the board complete and board welcome reward flow for seasonal boards, do we need to update this flow? Should we consider updating how these rewards work entirely? Would we design board welcome rewards in this way if we were starting from scratch? ",,P2,Prioritized,,,,Improvement,1 - Mid,Sometimes,Product team,Low,,,,NO COMMENTS,,
+,ID-YMK,Jaime Fraina,If the user is moving fast. Some assets aren't loaded when the user views them and are displayed as white boxes.,reviewed!,P1,Prioritized,,,Bug,,,,,,,,,NO COMMENTS,,
+TOP-96162,ID-ZSM,Jesús Bartus Sancho,"Abolish the use of delayed close buttons on offers, make it so that the close button appears at the same time at the last animation. ",reviewed!,,BLOCK,Other VG,,UI/UX,Improvement,0 - Low,All Sessions,Product team,High,,"Project HEALTH
+
+Being handled by Monetization team",,,,
+TOP-97317,ID-LDL,Jesús Bartus Sancho,"Do a pass on bots images AND MATCHING NAMES, generate new ones",reviewed!,P2,Pod Working,Pod2,,Bots,Improvement,0 - Low,All Sessions,Product team,High,,,,NO COMMENTS,,
+,ID-NNB,Jesús Bartus Sancho,"Add search bar to large selection list (select region)
+
+https://scopely.slack.com/archives/C02JC5M2K17/p1717179050538319",reviewed!,P2,Pod Working,Pod3,,Other,Improvement,0 - Low,Uncommon,Gamefeedback,Low,Figma link,,,NO COMMENTS,,
+,ID-RAF,Jaime Fraina,"Button polish
+Free rolls, Jail, Bonus board buttons need to be consistnt with Roll button
+all other buttons up to standards. Follow up with Carl for full design. ",MAYBE,P2,TODO,,,UI/UX,Improvement,1 - Mid,All Sessions,Product team,Low,,,,NO COMMENTS,,
+,ID-AMG,Carl Coss,Railroad VFX/anim doesn’t always play - old bug! Is this true?  Follow up with Carl for design. ,MAYBE,P2,TODO,,,Bug,Bug,0 - Low,All Sessions,Other teams,Low,,,,NO COMMENTS,,
+,ID-CKF,Carl Coss,Bank Heist VFX update,MAYBE,P2,TODO,,,SD/BH,Improvement,0 - Low,All Sessions,Other teams,Low,,,,NO COMMENTS,,
+,ID-YGY,"Jaime Fraina
+(Lily wrote this initially as part of UX Offsite)","TTR - Feedback after finishing a roll can feel bad - (e.g. too slow, too much happening), how can we improve this (ordering, timing, etc.)",,P2,TODO,,,Timings,,,,,High,,Should be part of HEALTH/TTR initiative?,,NO COMMENTS,,
+TOP-94608,ID-CDK,Joe Rosenthal,Graceful Rollover > Hype Video: Add the ability to mute or unmute sound during the video so that players can get the desired sound experience they want from the video at the moment it plays. Link to GDD.,reviewed!,P2,Done for release,Pod2,,Other,Improvement,0 - Low,Uncommon,Product team,Low,https://scopely.atlassian.net/wiki/spaces/TOP/pages/520224845/Graceful+Rollover#%F0%9F%9F%A1-Seasonal-Hype-Video-Improvements,,,NO COMMENTS,,
+TOP-94609,ID-FKU,Joe Rosenthal,"Graceful Rollover > Hype Video: Add a tap-to-skip functionality. The player taps once on the video to reveal a tap-to-skip button. Tapping on that button will then skip the video. This allows players to skip the video, but prevents accidental skips from unintended taps/missing the volume button (when added). Link to GDD.",reviewed!,P2,Done for release,Pod2,,Other,Improvement,0 - Low,Uncommon,Product team,Low,https://scopely.atlassian.net/wiki/spaces/TOP/pages/520224845/Graceful+Rollover#%F0%9F%9F%A1-Seasonal-Hype-Video-Improvements,,,NO COMMENTS,,
+TOP-94815,ID-WAJ,Art Team,"When a sticker pack is open, during sticker reveal, the vfx swirls go behind the stickers instead of in front.",,P2,Pre-Pro Ready,,,Album,Bug,0 - Low,All Sessions,Other teams,Low,,,,NO COMMENTS,,
+TOP-94816,ID-ZGP,Jaime Fraina,"SEARCH BAR IMPROVEMENTS 
+Whenever a search bar appears on screen, you can barely see the results of what you are searching (keyboard takes up most of the space)
+SOLUTION: Shift up contents of pop up so that you can see more results when searching. This needs to be applied to all cases when a search bar is used in the game. ",NOW,P1,Pre-Pro Ready,,,UI/UX,Improvement,0 - Low,Sometimes,Product team,Low,,https://scopely.slack.com/archives/C0914N6HRPV/p1769483907329899?thread_ts=1769361196.076579&cid=C0914N6HRPV,,NO COMMENTS,,
+TOP-94817,ID-ADD,Carl Larsson,"Invest in improving the roll experience. Right now, sometimes you roll the dice and your token moves quickly, the dice move out of frame so you can't actually see what you rolled. To fix this, we can update the code to try and point the dice at a specific position that's in the view frame, within the bounds of the board, and somewhat ahead of the anticipated roll. This would make it easier for users to catch their roll numbers. Talk to Carl L. ",,P2,Pre-Pro Ready,,,Rolling,Improvement,0 - Low,All Sessions,Product team,Low,,Thread where we discussed it https://scopely.slack.com/archives/C097Y7AAH7B/p1758841091727299?thread_ts=1758821725.752589&cid=C097Y7AAH7B ,,NO COMMENTS,,
+,ID-JCG,Joe Rosenthal,Search on networth and leagues leaderboard. ,NOW,P1,Prioritized,,,UI/UX,Improvement,0 - Low,Sometimes,Product team,Low,,,,NO COMMENTS,,
+,ID-NJU,Jaime Fraina,"Reward moments with vaults/safes or multiple types of rewards feels lame compared to when the reward is just cash or dice. Mr. Monopoly comes up and cash or dice fly around the screen when it's a huge single commodity reward, but only these small fireworks play in all other rewards. Example - https://scopely.slack.com/archives/C02JC5M2K17/p1754538669522179""",reviewed!,P1,Prioritized,,,MRG,Improvement,0 - Low,Sometimes,Gamefeedback,Low,,,,NO COMMENTS,,
+,ID-TGR,Jesús Bartus Sancho,Be consistent with popup fade outs are they're inconsistent in general,NOW - NEEDS DESIGN,P1,Prioritized,,,UI/UX,Bug,0 - Low,All Sessions,Product team,Low,,,,NO COMMENTS,,
+,ID-BOG,Lily Li,Toast for accepting a friend invite is confusing. It says something like [playername] accepted your invite! when you're the one that accepted their invite,NEEDS DESIGN,P1,TODO,,,Social,,,,,Low,,,,TODO,Simple copy fix; low risk; clear and actionable,
+,ID-RYW,Jaime Fraina,"Many targets in Shutdown don't have landmarks to shutdown, it's frustrating to look through your friends to try to find a good one. Friends that don't have landmarks to shutdown should be displayed in a different state on the target selection UI.",NEEDS DESIGN,P1,TODO,,,SD/BH,,,,,,,,,Keep Triage,Missing prepro/risk metadata; related to active SD/BH cluster,
+,ID-PLF,Jaime Fraina,"Improve progression clarity and consistency (progress bars). All progress bars behave differently, some feel broken, rewards are granted at different distances from where they are displayed on bars. Also not consistent in how we show previously claimed/earned rewards. Sometimes they’re removed, sometimes they persist, sometimes they persist with a checkmark, etc.",NEEDS DESIGN,P1,TODO,,,UI/UX,,,,,Low,,,,Discard,Too big — systemic audit across all bar types; needs its own epic,
+,ID-NIR,Joe Rosenthal,"General: Find a way to make scrims persist when two scrims follow one another. Right now, if two sequences are backed by a scrim, there will be a period between these two sequences where the scrim disappears and reappears. This flicker is unnecessary and can be smoothed out.",NOW,P1,TODO,,,UI/UX,,,,,,,,,Keep Triage,Missing all metadata; needs technical investigation,
+,ID-ELM,Jaime Fraina,"Seasonal core board reward improvements - 
+
+1. Add “BOARD REWARD” logo onto the board reward icon.
+2. Remove tray behind landmark deeds, put board reward in pill & have the timer float in the top center. Have the pill’s background color be based on the reward.
+3. Make the tool-tip more fun by changing the color and adding a logo at the top, similar to the Big Rewards one in TRNs.
+4. Update timer to include more information about what happens when the time runs out (e.g. “Board removed in 6h 3m” instead of just “6h 3m”).
+
+P2 - Allow seasonal boards to use a different landmark layout which has a safe area on bottom right for the board reward to be on the right side without covering a landmark.
+
+More details on Figma here - https://www.figma.com/design/fKa7HjjmldHZxdbCHGvlgT/Seasonal-Core-Board--SCB--Figma?node-id=35241-4022&t=7OfRChiO0kMoTZsz-11",NOW,P1,TODO,,,Other,,,,,,,,,Keep Triage,Missing all metadata; needs design clarification,
+,ID-IWT,Pedro Bravo,"When choosing an emoji reaction to equip, we should have emoji's on the shelves break the fold and show a row and a half to clearly indicate that it's scrollable. Right now we don't do anything to indicate it's scrollable.  ",NOW,P1,TODO,,,Cosmetics,,,,,,,,,TODO,Small UX fix; clear problem and solution,
+,ID-OSP,Jaime Fraina Pedro Bravo,"SHUTDOWN DEFAULT TARGET OVERHAUL: 
+
+Fix issues now
+Selecting a random target in Shutdown should target potential new friends instead of always being bots. (Part of original design, was cut due to scope). Detailed design - https://docs.google.com/document/d/11izS7X-7E12gtoWQ1P76NGbRwlFseUPOMfOhDnG3t0M/edit?tab=t.0",NOW - NEED DESIGN,P1,TODO,,,SD/BH,,,,,High,,,,Keep Triage,High risk; cut from original scope; related to active SD/BH tasks,
+,ID-UEW,Dasha Vdovina,"Revisit “Friendly Nudge”
+This is a legacy feature we inherited from the previous pod that lets an active player welcome back a reactivated friend. However, it’s barely being used—either because of a bug or poor visibility. We think there’s a missed social opportunity here that could help improve engagement among returning players.",NOW - NEEDS DESIGN,P1,TODO,,,Social,Bug,0 - Low,Uncommon,Product team,,,,,Keep Triage,Needs usage data investigation; missing risk metadata,
+,ID-GEP,Jesús Bartus Sancho,Allow multiplier and autoroll manipulation when you're not allowed to roll because other things are happening in the board (slack link),NOW,,BLOCK,,,Rolling,Improvement,1 - Mid,Uncommon,Community,Low,,,,,,
+TOP-94611,ID-JHL,Joe Rosenthal,"Graceful Rollover: Add re-entrancy compatability to the rollover experience. Make it so that if players drop out of the game during the rollover, they're able to come back and see the parts of the experience that they missed. Link to GDD.",,,TRIAGE,,,Other,Improvement,0 - Low,Uncommon,Product team,Low,,,,Keep Triage,Related to active rollover tasks ID-CDK/ID-FKU; needs edge case scoping,
+,ID-DGF,Jesús Bartus Sancho,NW screen. fix low-res doors,,,HOLD,,,Networth,Bug,0 - Low,Sometimes,Product team,Low,,Make sure is not technical issue. NW maybe is removed on the future so hold,,TODO,Clean low-effort P2 bug with full metadata; ship it,
+,ID-RUH,Pedro Bravo,"As a player, I want to know the moment tournament results are ready, even if I’m currently in the train scene SO THAT I’m always aware of my current Season/TRN status. Design can be found here",,,TRIAGE,,,Tournaments,,,,,,,Design can be found here,,Keep Triage,⚠️ Duplicate ID — this ID appears twice in TRIAGE with different priorities; dedup first,
+,ID-MCG,Jesús Bartus Sancho,Review bank of monopoly cash/rolls icons to make it closer to 2d reprsentations,,,TRIAGE,,,Delight,Improvement,1 - Mid,Sometimes,Product team,High,,No 3d assets ready,,Keep Triage,Mid prepro + high risk; unclear art scope,
+,ID-ZZX,Lily Li,"Some cosmetics can be flagged as ""preview-able"" in cosmetic shelves. They appear even if the player doesn't own them, they look different when not owned and interacting with them tells the player where they can be acquired",,,TRIAGE,,,Cosmetics,,,,,High,,,,Keep Triage,High risk; needs design for preview UX and acquisition sourcing,
+,ID-XHN,Lily Li,Contextual logic for friend recommendation systems (e.g. top of the list players for CC might be different for top of the list players for racers) ,,,TRIAGE,,,Social,,,,,High,,,keep,Discard,Too big — needs ML/algorithm design; full feature initiative,
+,ID-BJZ,Jesús Bartus Sancho,remove pill appearance animation when returning from heist/shutdown,,,TODO,,,Timings,Bug,0 - Low,All Sessions,Gamefeedback,Low,,,,TODO,Low effort bug; all sessions; improves return-to-board flow,
+,ID-NJZ,Jesús Bartus Sancho,Shields dobber animation with piano effect,,,TODO,,,Delight,Improvement,0 - Low,All Sessions,Product team,Low,,,,TODO,Low effort delight; all sessions visibility; quick win,
+,ID-LGT,Jaime Fraina,Differentiate minigame pills from flash events to make it more clear which is which.,,,TRIAGE,,,UI/UX,,,,,,,,,Keep Triage,Missing all metadata; needs design direction,
+,ID-KTC,Jesús Bartus Sancho,Colorwheel rewards update based on player progression,,,TRIAGE,,,Other,Improvement,1 - Mid,Uncommon,Community,High,,,,Hold,High risk; uncommon appearance; low urgency; park for later,
+,ID-ULG,Jaime Fraina,"Camera movement between events ending sometimes feels chaotic. The start of a partners event for example has the camera go to the center, then token, then back to the center zoomed out now. ",,,TRIAGE,,,Timings,,,,,Low,,,,Keep Triage,Missing most metadata; needs specific examples documented,
+,ID-ZLV,Jaime Fraina,"If a user didn’t progress at all in an event, the outro sequence should be skip the outro sequence- E.G. Starting a solo race and not playing for any of the races and then logging in after the event ends means you have to watch 3 races, results, and final results, which takes minutes of time just to see that you didn’t earn much. See video here - https://scopely.slack.com/archives/C02JC5M2K17/p1756156365530749",,,TRIAGE,,,Timings,,,,,,,,keep,Discard,Duplicate of active ID-IDI (skip racers/partners outro when no progress),
+,ID-SQT,Jaime Fraina Pedro Bravo,Bots that have shutdown landmarks should have less of to have a shield. Detailed design here - https://scopely.atlassian.net/browse/TOP-29408,,,TRIAGE,,,Bots,,,,,,,,,Keep Triage,Missing all metadata; needs design validation alongside ID-OMU bot work,
+,ID-KSU,Pedro Bravo,"Allow sourcing of league points (LP) outside of tournament end rewards (right now we don't handle this). This will help with allowing CS to grant LP  and in other locations if needed (like the tournament milestone bar). Design can be found here With the user story (P1) As a player, I want to earn League Points as a direct result of my engagement with Tournaments SO THAT if I engage deeply, I feel appropriately rewarded for my actions.",,,TRIAGE,,,Tournaments,,,,,,,"Design can be found here With the user story (P1) As a player, I want to earn League Points as a direct result of my engagement with Tournaments SO THAT if I engage deeply, I feel appropriately rewarded for my actions.",,Keep Triage,Missing all metadata; needs LP economy design,
+,ID-KZN,Pedro Bravo,"When players tap on an express coin that has the green arrow on it, change the tooltip to say ""You will upgrade your class if you earn this many express coins"". Currently the tooltip just explains what express coins are (league points) but doesn't change when it has the green arrow on it. ",,,TODO,,,Tournaments,,,,,,,Thread where we discussed it https://scopely.slack.com/archives/C097Y7AAH7B/p1758841091727299?thread_ts=1758821725.752589&cid=C097Y7AAH7B ,TODO,TODO,Simple tooltip text change; clear and actionable,
+,ID-GXD,,"Token special anims - Idle, Flip/Slam, Happy (board complete, purchase, award, free parking, etc.)",,,TRIAGE,,,Cosmetics,,,,,,,,,Keep Triage,Large scope needing art direction and task breakdown,
+,ID-IWB,Joe Rosenthal,"Graceful Rollover: If a player re-enters the game from a Bank Heist or Shutdown, make sure they see their TRN points doober / enter the newest TRN after the entire rollover flow. Right now, the doobering and TRN entering happen behind other actions, making them difficult to understand for the player. Link to GDD.",,,HOLD,,,Other,,,,,,,,HOLD,Discard,Duplicate of active ID-NGS (TRN points from BH/SD re-entrancy),
+,ID-TAZ,Jaime Fraina,Clean up ordering of popups in startup flow. Graceful Rollover fixed popups related to rollover but there are still some that affect startups that feel off. This task would include finalizing the design for the correct ordering and identifying all the popups that don't folllow it.,,,TRIAGE,,,Timings,,,,,,,,,Keep Triage,Missing all metadata; needs audit of remaining startup popup issues,
+,ID-RUH,Pedro Bravo,"As a player, I want to know the moment tournament results are ready, even if I’m currently in the train scene SO THAT I’m always aware of my current Season/TRN status. Design can be found here",,,TRIAGE,,,Tournaments,,,,,,,,,Keep Triage,⚠️ Duplicate ID — this ID appears twice in TRIAGE with different priorities; dedup first,
+,ID-PHK,Ian Gilmore,"Remove deleted or disassociated accounts from leaderboards, right now they stay in leaderboards and could be a troubling experience for some friends (like deceased relatives for example). See Ian's thread here: https://scopely.slack.com/archives/C08V45J8S2X/p1760737680555319 ",,,HOLD,,,Other,,,,,,,,HOLD,TODO,Sensitive issue (e.g. deceased relatives); clear action; player trust matter,
+,ID-XKF,Carl Coss,Board complete camera fix - need clarity from art on what this is,,,TRIAGE,,,Other,,,,,,,,,Keep Triage,Blocked — needs clarity from art; not actionable yet,
+,ID-LEM,Carl Coss,Shutdown Halo fixes - on crane hit - halos turns on too soon and trails look bad - need clarity from art on what this is,,,TRIAGE,,,SD/BH,,,,,,,,,Keep Triage,Blocked — needs clarity from art; not actionable yet,
+,ID-VMF,Pedro Bravo,"Make improvements to the board pickups spacing so that on days with a ton of pickups, it doesn't clump together pickups of the same type and tries to space them out. https://scopely.slack.com/archives/C02JC5M2K17/p1761748749177689?thread_ts=1761693419.177829&cid=C02JC5M2K17 ",,,TRIAGE,,,Other,,,,,,,,,Keep Triage,Missing all metadata; needs algorithm design,
+,ID-ZQZ,Alexsander Zelenko,"Add links of our artist pages from Spotify and Apple music to our ""Join Us"" pop up that can be accessed from the hamburger menu.(P2) Also build an IAM message that advocates to check out our music. ",,,HOLD,,,Other,,,,,,,,HOLD,Hold,Marketing request; low player impact; defer,
+To be included in ,ID-MAY,Chad Arr,"Net-Worth screen - icon and text for adding an extra roll in Bank of Monopoly are confusing. Text says ""Collect an extra reward from the Bank of Monopoly!"" with a dice icon, which is open to misinterpretation.
+https://scopely.slack.com/archives/C02JC5M2K17/p1765843715124309",,,HOLD,,,Networth,Improvement,0 - Low,Uncommon,Gamefeedback,Low,,Wait for NW final role,HOLD,TODO,Small copy/icon fix; low effort; low risk,
+,ID-BOE,Jesús Bartus Sancho,_Add search bar to large selection list (select region),NOW,P1,TODO,,,UI/UX,Improvement,0 - Low,All Sessions,Product team,High,,,,NO COMMENTS,,
+,ID-RCH,Jesús Bartus Sancho,Add 60 fps ,NOW,,BLOCK,Other VG,,Delight,Improvement,1 - Mid,All Sessions,Product team,High,,,,,,
+,ID-AFL,Erin Hanlon,Allow players agency over arranging their shields and tokens in their showroom (be cautious of adding clutter and management),,,TRIAGE,,,Cosmetics,,,,,,,,,Keep Triage,Needs design; caution noted about clutter/management overhead,
+Already done?,ID-ZEU,Pedro Bravo,"Add a volume slider in the options menu, this will allow players to control the volume of both in game sounds and music. ",,,TODO,,,Other,,,,,,,,TODO,TODO,Common QoL request; clear scope; low effort expected,
+,ID-TFE,Jaime Fraina,Better indication of last time online. Green dot if the user was online in the past hour. Don't display exact time. Increase the accuracy by letting server know a user is online every 15 mins.,,,TRIAGE,,,Timings,,,,,,,,,Keep Triage,Needs backend scoping for server-side ping changes,
+Already done?,ID-NHY,Stefanie Bollen,"When trading a sticker, if the other person doesn't respond the sticker is stuck in trade limbo for the next 12 hours and there is no way for the sender to cancel the trade. Can we add a cancel button to trade proposals?",,,Prioritized,,,Album,,,,,,,,todo,TODO,Clear QoL pain point; actionable album trading fix,
+,ID-KBO,Pedro Bravo,Albums - Graceful Rollover - Race event resolution happens after the new event intro flow (also coop and possibly adventures and battleship),,,TRIAGE,,,Timings,,,,,,,Original bug ticket that was closed as won't fix as was outside the scope of the feature. Can be prioritized as a product task in the future : https://scopely.atlassian.net/browse/TOP-91036 ,,Keep Triage,Related to active rollover work; needs sequencing with ID-CDK/ID-FKU,
+,ID-SCX,Salvador Mendez,"When the player completes  a shelf in the emoji showroom, the system shows a red pip in the Emoji section but when the player goes there he only sees the 2 empty selfs, Ideally the player will see at least the las row of emojies with the new emoies with the red pip.",,,TODO,,,Cosmetics,,,,,,,,TODO,TODO,Bug-like behavior; confusing notification; clear fix,
+,ID-CUU,Salvador Mendez,"In the showroom, each reward type has a different default view, even when the last vanity of that type is selected. Show always 2 full shelfs, the 1 inprogress and a locked shelf",,,TRIAGE,,,Cosmetics,,,,,,,,,Merge,Related to ID-SCX (showroom display issues); combine into one cosmetics polish task,
+,ID-DUE,Salvador Mendez,"Review the use of gifts in the game. Usually, we use the yellow & red gift, and for special rewards in the minigames, we use custom safe boxes, but for example, the daily treats have a special gift graphic. Can we unify the rewards so that a special gift is also a safe box?",,,TRIAGE,,,Cosmetics,,,,,,,,,Keep Triage,Scope unclear; needs visual audit across daily treats; minigames; etc.,
+,ID-CMD,Salvador Mendez,There is a gap of time between when an event is claimed in the tournament progress bar and when the event is active. It feels that something is not working at the correct timing,,,TRIAGE,,,Tournaments,,,,,,,PrePro ready - just a polish?,,Keep Triage,Missing all metadata; needs investigation of root cause,
+,ID-BUX,Salvador Mendez,The visuals for a gifted sticker can be dramatically improved. The visual of the sticker with the ribbon can be updated... or we can take as a reference the envolope animations that we have from coop and do an opening in this case.,,,TRIAGE,,,Cosmetics,,,,,,,,,Keep Triage,Missing all metadata; related to active ID-THE (sticker emoji response),
+Time to roll ?,ID-RYQ,Salvador Mendez,"I want to differentiate a little bit more the pop-ups. Offers, communications, presentations of minigames and seasons... I have the feeling that they some of them are pretty similars",,,TRIAGE,,,Rolling,,,,,,,,,Keep Triage,Systemic UI issue; needs design framework before individual fixes,
+,ID-NGF,Pedro Bravo,Tournament Point Escrow:There's a minute gap between tournaments where there's nothing live and any tournament points earned are lost.This feature will allow for any tournament points earned during this time to be saved and applied to the next tournament automatically. ,,,TODO,,,Tournaments,,,,,,,,TODO,TODO,Clear problem + solution; ID-TAK is duplicate — use this as canonical task,
+,ID-VCO,Salvador Mendez,"Not super important, but I have 600 boards, the game allows me to navigate through them but it's not comfortable... if we allow to do it, let's make it possible that you can reach the map that you desire in an easy way. We can speed up navigation through the boards, as iPhone and Android did with photos. Hold the finger on the right area of the screen to show a control bar and use it to navigate faster. ",,,TRIAGE,,,Other,,,,,,,,,Keep Triage,Missing all metadata; QoL for veterans; needs UX exploration,
+,ID-FEW,Francisco Romano,"Add more rules for MLS event , its been 3 years without novelty ",,,TRIAGE,,,Rolling,,,,,,,,,Keep Triage,Missing all metadata; needs game design exploration,
+,ID-MXO,Francisco Romano,"Add more chain reactions in chance cards , it does not create rollercoaster in the base game",,,TRIAGE,,,Rolling,,,,,,,,,Keep Triage,Missing all metadata; needs game design exploration,
+,ID-WYX,Francisco Romano,"Create a new logic for shield respawn and allow for ever game to win 10% RTP
+- Logic : 
+Players that dont have shield see 4 pick ups 
+When they are full of shields and they get a pick up , the pick up does not respawn 
+If players get all the pick ups while full of shields , there are no shields in the board 
+If you loose a shield pick ups respawns ",,,HOLD,,,Rolling,,,,,,,,HOLD,Discard,Too big — complex game economy redesign; needs its own design epic,
+,ID-FSZ,Andrew Carter,"Playing SD/BH on 1x multiplier shows no multiplier widget in the game UI - this makes the UI look imbalanced (there is just empty space) and could be potentially confusing for players. We should just consistently message ""1x"" as we would for other multipliers.",,,TRIAGE,,,SD/BH,,,,,,,Confirm with chance cards?,wait,TODO,Simple UI consistency fix; clear problem and solution,
+,ID-GIR,Christian Kurlemann,"Some boards are significantly more interesting than others. We have ~370 boards, but for anyone who is past that content and seeing re-used boards (which many valuable players do), there is not great logic for which ones they see. Right now it is a simple weight based on how many times you see them. We should perhaps go through and rank them, to add an additional weight to their frequency (i.e. Noir board maybe shows up 3x more frequently than some basic one).... there is no RIGHT and WRONG board -> this is a matter of preference... BUT.... surely we can apply some rankings",reviewed!,P1,Pod Working,,,Delight,,,,,,,,,Discard,Duplicate of active ID-CSQ (smarter board re-use logic),
+TOP-94596,ID-JTQ,Jaime Fraina,"QUICK WINS OVERHAUL: 
+
+● Reduce idle times on Quick wins by doobering the rewards from UI (opens box in UI and not in MRG), then claiming any sticker packs, then adding quick wins progress to the progress bar.",reviewed!,P2,Pod Working,Pod 28,,QW,Improvement,2 - High,Daily,Gamefeedback,High,https://www.figma.com/board/hQWxfZhdVCOszuCYPJwhCN/Pod-2-Product-Tasks?node-id=226-133&t=NeyT0Wug19Vge488-11,"DESIGN AVAILABLE, talk to Pod 2 before beginning work. Larger task here was dropped in favor of completing just the Auto-Claim and Speedup portions. 
+
+For Analytics: Our goal here would be to increase return rates for non-regulars by creating a less punishing system. Maybe more participation in QW for those players that forgot to claim. Look at current return rates for players that forgot to claim and compare post launch. ",,NO COMMENTS,,
+,ID-VBP,Salvador Mendez,"Language preference order fallback (link slack channel)
+At the start of the game, the player can't change the default language until FTUE is complete. When the game doesn't  have a language, it fallback to English, but there are some countries that have multiple languages that maybe will land better for the user so the FTUE can be more friendly for them",,,TRIAGE,,,FTUE,,,,,,,,,Keep Triage,Missing most metadata; niche but affects international players,
+,ID-XRD,Jaime Fraina,The Roll Button in Bank of Monopoly is very similar to the Cash Boost Roll Button and has been known to cause confusion for users since the rewards in BoM are not boosted.,,,,,,,,,,,,,,,NO COMMENTS,,
+,ID-CWE,Jaime Fraina,"Make the board name in a bigger font and ""WELCOME TO"" in a smaller font on board welcome screens. Focus should be on new board name, not the text that stays the same every time.",,,,,,,,,,,,,,,NO COMMENTS,,
+,ID-LNM,Salvador Mendez,"In the first login of the day, when the system shows the results of the tournament, the screen is load by parts, first the frame and after the content without animations just a poping spawn. We can introduce the contentwith an animation or polish it to improve it quality ",,,,,,,,,,,,,,,NO COMMENTS,,
+,ID-QIF,Adam Zelenay,"Time-to-roll
+
+For Chain Offers, add the option to tap to skip the unlocking animation when claiming the reward. Currently, this creates significant friction and can feel frustrating when players want to quickly collect their rewards but are slowed down by the animation. This interruption takes players out of the flow and delays them from getting back to rolling.",,,,,,Timings,,,,,,,,,NO COMMENTS,,
+,ID-JUR,Adam Zelenay,"Cosmetics
+
+It’s been discussed many times that cosmetics effectively map the player’s journey, as they represent the main beats in the rollercoaster of progression. I’d love if we could explore further how each cosmetic could feel like a proverbial “stamp” on a player’s MGO passport.
+
+As a starting point, I’d consider adding at least the date when the cosmetic was claimed, so players can look back and remember when they earned it. This would help reinforce the sense of progression and make cosmetics feel more like milestones tied to their personal history in the game.",,,,,,Cosmetics,,,,,,,,,NO COMMENTS,,
+,ID-NFM,Adam Zelenay,"Profile Pictures
+
+This is one of the most player-facing elements in the game and the simplest way the player can customize his 'avatar' - yet the available options are rarely refreshed. The last update was in December ’24 for Christmas, and since then, we haven’t leveraged opportunities around IP or seasonal moments.
+
+I’d also consider going a step further and introducing animated avatars as obtainable rewards. This could effectively create a new type of cosmetic commodity which, unlike most others (with the exception of shields), would be highly visible to other players and therefore has the potential to become a desirable status symbol in the game.",,,,,,Social,,,,,,,,,NO COMMENTS,,
+,ID-POS,Pedro Bravo,"Explore more options to show players what vanity is at the end of Leagues. Right now it's impossible to see what vanity you can earn unless you get to the class before it OR you search for it on social media if someone has posted about it. Can we include a short section in the tooltip for future classes where we say something along the lines of ""and in future classes ..."" and then include the vanity there for players to tap and look at. ",,,,,,,,,,,,,,,NO COMMENTS,,
+,ID-BLF,Pedro Bravo,"https://scopely.slack.com/archives/C02JC5M2K17/p1772639159459439
+Interesting feedback, I think we'd honestly prefer players to use their profile pics from facebook here to make the game feel more alive. So it's kinda of a push and pull here of making these avatar images better could hurt the social feeling of the game?",,,TRIAGE,,,,,,,,,,,,Keep Triage,Vague feedback; missing all metadata and group; needs product direction,
+,ID-LJL,Francisco Romano,"Ruby Urlings  [5:03 PM]
+Been thinking about bankheist and shutdown. I like the anger and deceit I feel coming back to the game, and seeing that my friend(s) destroyed my landmarks, especially since it’s so visual. It triggers a (funny) emotional reaction from me. However, I do not get that after someone bankrupted me. I think it’s partially as when I enter I can see it on the timeline, and I quickly dismiss it just like other pop ups. There’s no cool visuals making it obvious my friends stole from me, even though I know they did, and hence I have no hard feelings at all. Maybe this is an opportunity to show an animation or effect on my main hud with 0 balance, showing that e.g. Kurt robbed my cash. Something more visual and cheeky that equals seeing your landmark destroyed, to trigger more of an emotional response, rather than just a timeline entry. Just an idea.",,,HOLD,,,,,,,,,,Possible candidate for Board report revamp,HOLD,Discard,Not a task — raw brainstorm/feedback with no actionable scope,
+,ID-QXJ,Francisco Romano,"Sticker boom triggering in the wrong moments creating a bad experience for users more info
+https://scopely.slack.com/archives/C02JC5M2K17/p1772904029246189",,,TODO,,,,,,,,,,,TODO,TODO,Bug causing bad player experience; actionable,
+,ID-XHK,Francisco Romano,Mega heist can use the face of the person you are gonna target to make it more social meaninful,,,TRIAGE,,,,,,,,,,,,Keep Triage,Missing all metadata; needs design exploration,
+,ID-MMX,Francisco Romano,"pills outside the boundaries , this is terrible user experience 
+https://scopely.slack.com/archives/C02JC5M2K17/p1773346132032889",,,TODO,,,,,,,,,,,TODO,TODO,Bug causing terrible UX per description; should be prioritized,
+,ID-KEZ,Francisco Romano,"map inconsistent , when you access through the burger menue and when you change the board , probably its a good opportunity to remake this in the map 2.0
+https://scopely.slack.com/archives/C02JC5M2K17/p1772623980134669",,,TRIAGE,,,,,,,,,,,,Keep Triage,Description mentions map 2.0 suggesting broader redesign; needs scoping,
+,ID-DPY,Francisco Romano,"★☆☆☆☆ :us: United States 
+Pointless
+Don’t really get the point of these games. You level up for what? Why would spend money on this game?",,,,,,,,,,,,,,,NO COMMENTS,,
+,ID-CZI,Francisco Romano,"★☆☆☆☆ :flag-ca: Canada 
+Can’t add
+The game doesn’t give you all your rolls all the time I have rolled a 7 some times and it only gives you 5 spaces and sometimes puts you in jail when you roll the one ahead",,,,,,,,,,,,,,,NO COMMENTS,,
+,ID-XZM,Francisco Romano,"★☆☆☆☆ :us: United States 
+Fun but not really fair
+I have been playing this game for about two years and just won my first mini games challenge. I have never fully collected a sticker set and people use an another game on the side to make trading easier. I don’t have time to do all of that to maybe get all of cards for a set theme. It’s honestly addicting and I like it but it’s NOT a fair and don’t expect to win the mini games if you are just starting out in the game.",,,,,,,,,,,,,,,NO COMMENTS,,
+,ID-DLO,Francisco Romano,"★☆☆☆☆ :flag-ph: Philippines 
+Rigged
+They claim dice to be random. Yes. But everything else is rigged.",,,TRIAGE,,,,,,,,,,,,NO COMMENTS,,
+,ID-FNP,Adam Zelenay,"Introduce tap-to-skip animations throughout the game, prioritizing mini-games, which are currently the biggest contributor to delaying the players from rolling.
+
+Long animations are increasingly becoming a source of friction throughout the game. We don't have the natural “tap to skip” functionality, which breaks the flow and can create strong moments of frustration.",,,TRIAGE,,,,,,,,,,,,NO COMMENTS,,
+,ID-GDK,Andrew Carter,The UI setup for the railroad reward popups (SD and BH) has limited scaling options which makes it look very odd on wide devices. Needs alignment between product/design and UI for how this should appear on wider screens and consideration for future requirements (e.g. assymetric theming - where the left side might look different to the right).,,,TRIAGE,,,,,,,,,,,,NO COMMENTS,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,
+,#NUM!,,,,,,,,,,,,,,,,,#NUM!,,

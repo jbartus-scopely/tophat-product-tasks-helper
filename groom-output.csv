@@ -1,0 +1,71 @@
+Task ID,AI Description,AI Priority,AI Action,AI Notes,AI Group
+ID-DGF,Fix low-res doors on Net Worth screen,Low,TODO,Clean low-effort P2 bug with full metadata; ship it,Networth
+ID-BJZ,Remove pill reappearance animation when returning from heist/shutdown,Mid,TODO,Low effort bug; all sessions; improves return-to-board flow,Timings
+ID-LEN,Make all popup closings instant; remove all close animations,High,Merge,Overlaps active ID-CZC + ID-ZSM (popup close work); fold in as scope extension,Timings
+ID-NJZ,Add piano doober animation to shield pickup,Low,TODO,Low effort delight; all sessions visibility; quick win,Delight
+ID-UEW,Revisit barely-used Friendly Nudge reactivation feature,Low,Keep Triage,Needs usage data investigation; missing risk metadata,Social
+ID-KMW,Remove Mr. M animation + doober splash for large MRG rewards,Mid,Merge,Fold into ID-ADC (doober overhaul) and ID-SYU (MRG timings review),MRG
+ID-ZPQ,Allow zoom gesture in build view,Low,Merge,Overlaps ID-KSX (tap to zoom on building); combine into one task,Delight
+ID-JHL,Graceful Rollover: re-entrancy compatibility for mid-session dropouts,Mid,Keep Triage,Related to active rollover tasks ID-CDK/ID-FKU; needs edge case scoping,Other
+ID-MAY,Fix confusing icon/text for extra roll on NW Bank of Monopoly perk,Low,TODO,Small copy/icon fix; low effort; low risk,Networth
+ID-GIR,Improve board variety/reuse for veteran players past 370 boards,High,Discard,Duplicate of active ID-CSQ (smarter board re-use logic),Delight
+ID-DIM,Review if MRG needed for single-commodity rewards; use direct spawn,Mid,Merge,Fold into active MRG review work ID-SYU; missing all metadata,MRG
+ID-UFG,Show League tier on Tycoon Card as player identity,Mid,Keep Triage,Design exists but missing prepro/risk/appearance; needs scoping,Tournaments
+ID-SMT,Implement native iOS/Android keyboards across the game,High,Discard,Too big — full technical initiative needing its own discovery epic,UI/UX
+ID-FVT,Shorten pay rent animation for long-time players,Mid,Keep Triage,High risk; missing prepro/appearance; needs design on contextual shortening,Timings
+ID-BOG,Fix confusing toast text when accepting a friend invite,Low,TODO,Simple copy fix; low risk; clear and actionable,Social
+ID-PLF,Make all progress bars behave consistently across the game,Mid,Discard,Too big — systemic audit across all bar types; needs its own epic,UI/UX
+ID-XLX,Add set number and logo sticker preview in album view,Mid,Merge,Overlaps ID-OTZ (add set logo to sticker view); combine into one task,Album
+ID-RYW,Deprioritize friends without landmarks in shutdown target list,Mid,Keep Triage,Missing prepro/risk metadata; related to active SD/BH cluster,SD/BH
+ID-NIR,Fix scrim disappearing between back-to-back popup sequences,Mid,Keep Triage,Missing all metadata; needs technical investigation,UI/UX
+ID-ELM,Improve seasonal board reward icon; pill layout; timer positioning,Low,Keep Triage,Missing all metadata; needs design clarification,Other
+ID-IWT,Show partial emoji row on shelf to indicate it scrolls,Low,TODO,Small UX fix; clear problem and solution,Cosmetics
+ID-RCH,Add 60 fps support to the game,High,Discard,Too big — major performance initiative needing its own technical epic,Delight
+ID-TVK,Redesign board report as scannable social summary of away activity,Mid,Keep Triage,High risk; needs full design; must feel different from timeline,Social
+ID-OSP,Overhaul shutdown default target to prefer potential new friends,Mid,Keep Triage,High risk; cut from original scope; related to active SD/BH tasks,SD/BH
+ID-ULG,Fix chaotic camera movement between events ending and starting,Low,Keep Triage,Missing most metadata; needs specific examples documented,Timings
+ID-MCG,Update Bank of Monopoly cash/rolls icons to match 2D style,Low,Keep Triage,Mid prepro + high risk; unclear art scope,Delight
+ID-RUH,Show tournament results notification even during train scene (P2),Mid,Keep Triage,⚠️ Duplicate ID — this ID appears twice in TRIAGE with different priorities; dedup first,Tournaments
+ID-KTC,Update colorwheel rewards based on player progression,Low,Hold,High risk; uncommon appearance; low urgency; park for later,Other
+ID-ZLV,Skip event outro sequence if player made zero progress,Mid,Discard,Duplicate of active ID-IDI (skip racers/partners outro when no progress),Timings
+ID-LGT,Differentiate minigame pills visually from flash event pills,Low,Keep Triage,Missing all metadata; needs design direction,UI/UX
+ID-SQT,Reduce shield chance for bots that have shutdown landmarks,Low,Keep Triage,Missing all metadata; needs design validation alongside ID-OMU bot work,Bots
+ID-KSU,Allow LP sourcing outside tournament end rewards (CS grants; etc.),Mid,Keep Triage,Missing all metadata; needs LP economy design,Tournaments
+ID-KZN,Update express coin tooltip to explain class upgrade threshold,Low,TODO,Simple tooltip text change; clear and actionable,Tournaments
+ID-GEQ,Improve roll dice visibility and token movement feel,Mid,Discard,Duplicate of active ID-ADD (same roll experience improvement),Rolling
+ID-IWB,Show TRN points doober correctly after BH/SD re-entry in rollover,Mid,Discard,Duplicate of active ID-NGS (TRN points from BH/SD re-entrancy),Other
+ID-TAZ,Clean up popup ordering in startup flow post-Graceful Rollover,Mid,Keep Triage,Missing all metadata; needs audit of remaining startup popup issues,Timings
+ID-GXD,Add token special anims: idle; flip/slam; happy reactions,Mid,Keep Triage,Large scope needing art direction and task breakdown,Cosmetics
+ID-PHK,Remove deleted/disassociated accounts from leaderboards,Mid,TODO,Sensitive issue (e.g. deceased relatives); clear action; player trust matter,Social
+ID-XKF,Fix board complete camera behavior,Low,Keep Triage,Blocked — needs clarity from art; not actionable yet,Other
+ID-LEM,Fix shutdown halo timing and trail visuals on crane hit,Low,Keep Triage,Blocked — needs clarity from art; not actionable yet,SD/BH
+ID-VMF,Improve board pickup spacing to avoid clumping same-type pickups,Low,Keep Triage,Missing all metadata; needs algorithm design,Other
+ID-ZQZ,Add Spotify/Apple music links to Join Us popup + IAM advocacy message,Low,Hold,Marketing request; low player impact; defer,Other
+ID-AFL,Let players arrange shields and tokens in their showroom,Low,Keep Triage,Needs design; caution noted about clutter/management overhead,Cosmetics
+ID-ZEU,Add volume slider to options menu for sounds and music,Low,TODO,Common QoL request; clear scope; low effort expected,Other
+ID-TFE,Better last-online indicator with green dot + 15-min server pings,Mid,Keep Triage,Needs backend scoping for server-side ping changes,Social
+ID-NHY,Add cancel button for pending sticker trades stuck in 12-hour limbo,Mid,TODO,Clear QoL pain point; actionable album trading fix,Album
+ID-KBO,Fix album graceful rollover: race resolution happens after new event intro,Mid,Keep Triage,Related to active rollover work; needs sequencing with ID-CDK/ID-FKU,Timings
+ID-SCX,Fix misleading red pip on completed emoji shelf with nothing new,Low,TODO,Bug-like behavior; confusing notification; clear fix,Cosmetics
+ID-CUU,Standardize showroom default shelf view across all reward types,Low,Merge,Related to ID-SCX (showroom display issues); combine into one cosmetics polish task,Cosmetics
+ID-DUE,Audit and standardize gift visuals across game modes,Low,Keep Triage,Scope unclear; needs visual audit across daily treats; minigames; etc.,Cosmetics
+ID-CMD,Fix timing gap between tournament bar claim and event activation,Mid,Keep Triage,Missing all metadata; needs investigation of root cause,Tournaments
+ID-BUX,Improve gifted sticker visuals with better ribbon/envelope animation,Low,Keep Triage,Missing all metadata; related to active ID-THE (sticker emoji response),Album
+ID-RYQ,Differentiate popup types: offers vs comms vs minigame intros vs seasons,Mid,Keep Triage,Systemic UI issue; needs design framework before individual fixes,UI/UX
+ID-TAK,Points earned between tournaments should count toward next tournament,Mid,Merge,Same issue as ID-NGF (Tournament Point Escrow); merge into ID-NGF,Tournaments
+ID-VCO,Improve board navigation UX for players with 600+ boards,Low,Keep Triage,Missing all metadata; QoL for veterans; needs UX exploration,Other
+ID-NGF,Tournament Point Escrow: capture points during gap between tournaments,Mid,TODO,Clear problem + solution; ID-TAK is duplicate — use this as canonical task,Tournaments
+ID-FEW,Add new rules/mechanics to MLS event after 3 years of no changes,Low,Keep Triage,Missing all metadata; needs game design exploration,Rolling
+ID-MXO,Add more chain reactions in chance cards for base game excitement,Low,Keep Triage,Missing all metadata; needs game design exploration,Rolling
+ID-WYX,New shield respawn logic with 10% RTP and conditional pickups,Mid,Discard,Too big — complex game economy redesign; needs its own design epic,Rolling
+ID-FSZ,Show 1x multiplier widget in SD/BH instead of empty space,Low,TODO,Simple UI consistency fix; clear problem and solution,SD/BH
+ID-VBP,Fix language preference fallback order during FTUE,Low,Keep Triage,Missing most metadata; niche but affects international players,FTUE
+ID-BLF,Consider encouraging Facebook profile pics for social presence,Low,Keep Triage,Vague feedback; missing all metadata and group; needs product direction,Social
+ID-LJL,Feedback on bankheist/shutdown emotional experience and design,Low,Discard,Not a task — raw brainstorm/feedback with no actionable scope,SD/BH
+ID-QXJ,Fix sticker boom triggering at wrong moments causing bad UX,Mid,TODO,Bug causing bad player experience; actionable,Album
+ID-XHK,Use target's face in mega heist screen for social meaning,Low,Keep Triage,Missing all metadata; needs design exploration,SD/BH
+ID-MMX,Fix pills rendering outside screen boundaries,Mid,TODO,Bug causing terrible UX per description; should be prioritized,UI/UX
+ID-KEZ,Fix map inconsistency between burger menu and board change,Low,Keep Triage,Description mentions map 2.0 suggesting broader redesign; needs scoping,UI/UX
+ID-ZZX,Allow previewing unowned cosmetics on shelves with acquisition info,Mid,Keep Triage,High risk; needs design for preview UX and acquisition sourcing,Cosmetics
+ID-XHN,Context-aware friend recommendations per game mode,Mid,Discard,Too big — needs ML/algorithm design; full feature initiative,Social
+ID-RUH,Tournament results during train scene (duplicate ID; no priority),Mid,Discard,⚠️ Duplicate ID of the P2 row above; remove this row and keep the P2 version,Tournaments

@@ -1,0 +1,23 @@
+Task ID,Score,AI Description,AI Priority,AI Action,AI Notes,AI Group
+ID-DGQ,130,Fix frame stutters/hitches across the game — top 5 investigation,High,Take Next,P0; low prepro; low risk; affects all sessions; top priority perf fix,Bug
+ID-TGR,115,Make popup fade-out animations consistent across the game,High,Take Next,P1; low prepro; low risk; all sessions; quick polish win,UI/UX
+ID-KZI,108,Improve clouds VFX to/from shutdown & bankheist; shorten outro clouds,High,Take Next,P1; Pre-Pro Ready; low effort; art team strongly wants this,SD/BH
+ID-NJU,103,Reward moments with vaults/safes feel lame vs cash/dice splash animations,High,Take Next,P1; low prepro; Mr. Monopoly anim + doober splash needs love,MRG
+ID-LEN,80,Delete all popup close animations — make closing instantaneous,Mid,Consider,P1; mid prepro; HIGH risk — broad sweeping change; test carefully,Timings
+ID-KMI,90,Improve building sequence animations and timings; allow spam-through,Mid,Consider,P1; mid prepro; daily appearance; requires design alignment,Timings
+ID-ADC,70,Doober overhaul — speed up; improve feel; consolidate related tasks,Mid,Consider,P1; HIGH prepro + HIGH risk; big impact but heavy lift; plan carefully,MRG
+ID-DUQ,93,Update landmark building VFX (art team to define scope),Mid,Consider,P2; Pre-Pro Ready; low effort; needs art team clarity first,Delight
+ID-ADD,93,Improve roll experience — dice/token movement; keep dice visible on screen,Mid,Consider,P2; Pre-Pro Ready; low prepro; all sessions; core loop polish,Rolling
+ID-DPA,93,Speed up pill intro cascade animation (shorten intervals going down),Mid,Consider,P2; Pre-Pro Ready; low effort; all sessions; subtle timing win,Timings
+ID-KYZ,98,Fix scrim cutting off cash doober VFX on Rent Due puck landing,Mid,Consider,P2; Pre-Pro Ready; low effort bug fix; all sessions,UI/UX
+ID-WAJ,98,Fix sticker reveal VFX swirls rendering behind stickers instead of in front,Mid,Consider,P2; Pre-Pro Ready; low effort bug; all sessions,Album
+ID-GEU,91,Fix emoji animations in inventory — cut off or missing frames,Mid,Consider,P2; Pre-Pro Ready; low effort bug fix; see Spiderman example,Cosmetics
+ID-EIR,86,Animation improvements to color set complete hotel sequence,Low,Consider,P2; Pre-Pro Ready; low effort; sometimes visible; ask Carl C.,Delight
+ID-CKF,80,Bank Heist VFX update,Low,Consider,P2; TODO; low effort; all sessions; needs design follow-up,SD/BH
+ID-AMG,85,Railroad VFX/anim doesn't always play — old bug,Low,Consider,P2; TODO; low effort; needs Carl follow-up to confirm scope,Bug
+ID-TZE,93,Replace loading duck icon with season-themed animation,Low,Consider,P2; Pre-Pro Ready; low effort; fun delight opportunity,Delight
+ID-LFM,86,Add Plinko outro animation (currently missing),Low,Consider,P2; Pre-Pro Ready; low effort; sometimes visible,Other
+ID-BJZ,70,Remove pill appearance animation when returning from heist/shutdown,Low,Consider,No priority set; TODO; low effort; all sessions; quick fix,Timings
+ID-RCH,25,Add 60 fps support,Low,Skip,BLOCK status; no priority; high risk; needs broader perf strategy,Delight
+ID-CBZ,10,Landmark building anim not playing — VFX cleanup,Low,Skip,BLOCK status; no priority; needs clarity from art team,Bug
+ID-GXD,8,Token special anims — idle; flip/slam; happy reactions,Low,Skip,TRIAGE; no priority; no metadata; needs scoping first,Cosmetics

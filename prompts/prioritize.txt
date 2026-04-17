@@ -1,0 +1,46 @@
+Here are the TODO tasks to evaluate for promotion to Prioritized ({{taskCount}} tasks){{groupFilter}}:
+
+```csv
+{{todoCsv}}
+```
+
+For context, here are the tasks already in Prioritized or Pre-Pro Ready status ({{prioritizedCount}} tasks):
+
+```csv
+{{prioritizedCsv}}
+```
+
+Your job is to analyze the TODO tasks and recommend which ones should be promoted to "Prioritized" status. For each one, decide:
+- **Prioritize**: This task is high-value, actionable, and ready to move forward. It should be promoted to Prioritized.
+- **Keep TODO**: Not ready for promotion yet. Needs more context, scoping, or is lower priority than other candidates.
+
+Your response MUST include a CSV block in this exact format:
+
+```csv
+Task ID,AI Description,AI Priority,AI Action,AI Notes,AI Group
+<ID>,<short description max 120 chars>,<High|Mid|Low>,<action>,<recommendation>,<group>
+```
+
+Rules for the CSV:
+- One row per TODO task. Use the original Task ID.
+- AI Description: a simplified, shorter version (max 120 chars).
+- AI Priority: High, Mid, or Low (your assessment of this task's priority).
+- AI Action: MUST be one of: Prioritize, Keep TODO. No other values.
+  - Prioritize — promote to Prioritized status; high-value and ready to move forward.
+  - Keep TODO — not ready for promotion; needs more work or is lower priority.
+- AI Notes: a short reason or context. Use semicolons not commas.
+- AI Group: the group this task belongs to. MUST be one of: Timings, UI/UX, MRG, Album, SD/BH, Social, Cosmetics, Rolling, QW, Bug, Tournaments, Bots, Delight, FTUE, Networth, Other.
+- Do NOT use commas inside fields; use semicolons instead.
+
+Decision criteria for promotion:
+- Favor tasks with P0 or P1 priority.
+- Favor tasks with low prepro work (0 - Low).
+- Favor tasks with low risk.
+- Favor tasks with high player impact (All Sessions > Daily > Sometimes).
+- Favor bug fixes when severity is meaningful.
+- Check for overlap with already-Prioritized tasks — don't promote duplicates.
+- A mixed portfolio is ideal: a few high-impact bets plus several quick wins.
+
+After the CSV block, provide:
+1. A summary of tasks recommended for promotion, grouped by theme.
+2. Tasks that should stay in TODO with brief reasoning.

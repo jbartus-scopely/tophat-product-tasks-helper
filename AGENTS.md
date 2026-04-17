@@ -55,6 +55,12 @@ Suggest which product tasks should be taken next from a provided backlog CSV, us
     - `Task ID`
     - `AI description` a short and lighter version of the field Description/Problem`
     - `AI priority` a priority set to the task (High, Mid, Low) but also include here other topics as if its duplicated
+    - `AI Action` the recommended action to apply to the task. Possible values:
+        - `TODO` — task is actionable and should move forward
+        - `Keep Triage` — task needs more information or discussion before committing
+        - `Discard` — task is obsolete, duplicated, or not worth pursuing
+        - `Merge` — task should be merged with another related task (reference the target task ID in AI Notes)
+        - `Hold` — task has value but is intentionally deferred (blocked, wrong timing, etc.)
     - `AI Notes` A brief note on assumptions, data quality issues, or conflicts in the source file when relevant.
 - If grouping is requested, an additional field `AI Group` should be provided
 - Present always the data in 2 forms one plain copy/paste csv and also a viewtiful table inside codex, both with exact same data

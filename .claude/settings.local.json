@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(claude *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(node *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(gtimeout 3 node dist/cli.js)"
+    ]
+  }
+}
