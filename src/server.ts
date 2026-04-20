@@ -9,6 +9,9 @@ import {
   loadBacklog,
   computeStats,
   getGroups,
+  getPods,
+  getCategoryStatuses,
+  getScoreMap,
   filterTasks,
   getTask,
   isAiAvailable,
@@ -138,12 +141,35 @@ export function startServer(port: number, filePath?: string): void {
     }
   });
 
+  app.get('/api/pods', (c) => {
+    try {
+      return c.json(getPods(requireBacklog()));
+    } catch (e: any) {
+      return c.json({ error: e.message }, 400);
+    }
+  });
+
+  app.get('/api/scores', (c) => {
+    try {
+      return c.json(getScoreMap(requireBacklog()));
+    } catch (e: any) {
+      return c.json({ error: e.message }, 400);
+    }
+  });
+
+  app.get('/api/categories/:name/statuses', (c) => {
+    return c.json(getCategoryStatuses(c.req.param('name')));
+  });
+
   app.get('/api/tasks', (c) => {
     try {
       const category = c.req.query('category') || 'backlog';
       const group = c.req.query('group') || undefined;
       const limit = parseInt(c.req.query('limit') || '50');
-      return c.json(filterTasks(requireBacklog(), category, group, limit));
+      const priority = c.req.query('priority') || undefined;
+      const pod = c.req.query('pod') || undefined;
+      const status = c.req.query('status') || undefined;
+      return c.json(filterTasks(requireBacklog(), category, group, limit, priority, pod, status));
     } catch (e: any) {
       return c.json({ error: e.message }, 400);
     }

@@ -1,10 +1,12 @@
-import { api, onAiJobChange, getAiJob, getRunningAiView, loadModels } from './shared.js';
-import { renderDashboard, renderTaskList, renderAiView } from './components.js';
+import { api, onAiJobChange, getAiJob, getRunningAiView, loadModels, onSelectionChange, getSelectionCount } from './shared.js';
+import { renderDashboard, renderTaskList, renderAiView, renderSelectionView } from './components.js';
 
 let state = {
   backlogLoaded: false,
   stats: null,
   groups: [],
+  pods: [],
+  scores: {},
   aiAvailable: false,
 };
 
@@ -26,6 +28,7 @@ const VIEW_TITLES = {
   groom: 'AI: Groom Triage',
   prioritize: 'AI: Prioritize',
   duplicates: 'AI: Find Duplicates',
+  selection: 'Selection',
 };
 
 const AI_VIEWS = ['analyze', 'groom', 'prioritize', 'duplicates'];
@@ -45,10 +48,25 @@ async function init() {
     state.backlogLoaded = true;
     state.stats = await api('/api/stats');
     state.groups = await api('/api/groups');
+    state.pods = await api('/api/pods');
+    state.scores = await api('/api/scores');
     updateBacklogBadge();
   }
 
   updateAiNavItems();
+  updateSelectionBadge();
+
+  onSelectionChange(() => {
+    updateSelectionBadge();
+    if (getView() === 'selection') {
+      const active = document.activeElement;
+      const isEditing = active && (active.classList.contains('sel-notes-input') || active.classList.contains('sel-override'));
+      if (!isEditing) {
+        renderSelectionView($view, state);
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+  });
 
   // When any AI job changes state, update nav spinners and re-render current AI view
   onAiJobChange(() => {
@@ -80,6 +98,14 @@ function updateBacklogBadge() {
     $backlogBadge.textContent = 'No data';
     $backlogBadge.className = 'backlog-badge';
   }
+}
+
+function updateSelectionBadge() {
+  const badge = document.getElementById('selection-count');
+  if (!badge) return;
+  const count = getSelectionCount();
+  badge.textContent = count;
+  badge.style.display = count > 0 ? 'inline-flex' : 'none';
 }
 
 function updateAiNavItems() {
@@ -133,12 +159,12 @@ function route() {
 
   $title.textContent = VIEW_TITLES[view] || 'Dashboard';
 
-  if (!state.backlogLoaded) {
+  if (view === 'selection') {
+    renderSelectionView($view, state);
+  } else if (!state.backlogLoaded) {
     showEmptyState();
     return;
-  }
-
-  if (AI_VIEWS.includes(view)) {
+  } else if (AI_VIEWS.includes(view)) {
     renderAiView($view, view, state);
   } else {
     switch (view) {
@@ -187,6 +213,8 @@ async function uploadFile(file) {
     state.backlogLoaded = true;
     state.stats = result.stats;
     state.groups = await api('/api/groups');
+    state.pods = await api('/api/pods');
+    state.scores = await api('/api/scores');
     updateBacklogBadge();
     location.hash = '#dashboard';
     route();

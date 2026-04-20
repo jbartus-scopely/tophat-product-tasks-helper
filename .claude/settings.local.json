@@ -46,7 +46,15 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('error:', d.get\\('error','none'\\), 'tasks:', len\\(d.get\\('tasks',[]\\)\\)\\)\")",
       "Bash(curl -s -X POST http://localhost:3000/api/ai/analyze -H 'Content-Type: application/json' -d '{\"ask\":\"top 3\"}')",
       "Bash(curl -s -X POST http://localhost:3000/api/ai/analyze -H 'Content-Type: application/json' -d '{\"ask\":\"top 3\",\"group\":\"UI/UX\"}')",
-      "Bash(curl -s -X POST http://localhost:3000/api/ai/groom -H 'Content-Type: application/json' -d '{\"group\":\"UI/UX\"}')"
+      "Bash(curl -s -X POST http://localhost:3000/api/ai/groom -H 'Content-Type: application/json' -d '{\"group\":\"UI/UX\"}')",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d['total']\\); [print\\(t.get\\('assignedPod',''\\)\\) for t in d['tasks']]\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('total:', d['total']\\); [print\\(t['id'], t['priority']\\) for t in d['tasks']]\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('empty pod filter total:', d['total']\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('TODO in backlog:', d['total']\\); [print\\(t['id'], t['status']\\) for t in d['tasks']]\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Prioritized:', d['total']\\); [print\\(t['id'], t['score']\\) for t in d['tasks']]\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); items=list\\(d.items\\(\\)\\)[:3]; [print\\(k,v\\) for k,v in items]\")"
     ]
   }
 }

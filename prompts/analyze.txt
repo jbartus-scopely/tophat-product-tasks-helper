@@ -11,12 +11,12 @@ Your response MUST include a CSV block in this exact format:
 
 ```csv
 Task ID,AI Description,AI Priority,AI Action,AI Notes,AI Group
-<ID>,<short description max 120 chars>,<High|Mid|Low>,<action>,<recommendation>,<group>
+<ID>,<original task description>,<High|Mid|Low>,<action>,<recommendation>,<group>
 ```
 
 Rules for the CSV:
 - Include the most relevant tasks for the user's question. Aim for 10-20 tasks.
-- AI Description: a simplified, shorter version (max 120 chars).
+- AI Description: use the original task description from the backlog as-is.
 - AI Priority: High, Mid, or Low (your assessment of this task's importance).
 - AI Action: MUST be one of: Take Next, Consider, Skip.
   - Take Next — strongly recommended; high-value; actionable now.

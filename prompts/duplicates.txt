@@ -11,5 +11,24 @@ Please find:
 2. **Semantic duplicates**: Different tasks that describe the same or overlapping work (different IDs but similar intent).
 3. **Related clusters**: Tasks that are distinct but could be grouped into a single initiative or batch.
 
-For each finding, list the task IDs and explain what's duplicated or related.
-Recommend which to keep, merge, or deprioritize.
+Your response MUST include a CSV block in this exact format:
+
+```csv
+Task ID,AI Description,AI Priority,AI Action,AI Notes,AI Group
+<ID>,<original task description>,<High|Mid|Low>,<action>,<recommendation>,<group>
+```
+
+Rules for the CSV:
+- Include every task that is part of a duplicate pair; semantic duplicate; or related cluster.
+- AI Description: use the original task description from the backlog.
+- AI Priority: High, Mid, or Low (priority of resolving this duplicate).
+- AI Action: MUST be one of: Merge, Discard, Keep Triage, Hold.
+  - Merge — should be merged with another task (reference target ID in AI Notes).
+  - Discard — this is the weaker duplicate; remove it.
+  - Keep Triage — keep both but flag for review.
+  - Hold — related but distinct; defer grouping decision.
+- AI Notes: explain what it duplicates or relates to. Reference task IDs. Use semicolons not commas.
+- AI Group: the group this task belongs to. MUST be one of: Timings, UI/UX, MRG, Album, SD/BH, Social, Cosmetics, Rolling, QW, Bug, Tournaments, Bots, Delight, FTUE, Networth, Other.
+- Do NOT use commas inside fields; use semicolons instead.
+
+After the CSV block, provide a summary grouped by duplicate clusters explaining the relationships.

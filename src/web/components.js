@@ -1,10 +1,14 @@
-import { api, apiPost, MAX_SCORE, getAiJob, startAiJob, cancelAiJob, resetAiJob, getModels, getSelectedModel, setSelectedModel, getQueryHistory, addQueryToHistory, toggleStarQuery, removeQueryFromHistory, clearQueryHistory } from './shared.js';
+import { api, apiPost, MAX_SCORE, getAiJob, startAiJob, cancelAiJob, resetAiJob, getModels, getSelectedModel, setSelectedModel, getQueryHistory, addQueryToHistory, toggleStarQuery, removeQueryFromHistory, clearQueryHistory, isSelected, addToSelection, addAiTaskToSelection, removeFromSelection, getSelection, clearSelection, updateSelectionOverride, updateSelectionNotes } from './shared.js';
 
 // ── Helpers ──────────────────────────────────────────────────
 function esc(str) {
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
+}
+
+function linkify(escaped) {
+  return escaped.replace(/https?:\/\/[^\s<&"']+/g, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
 }
 
 function truncate(text, max) {
@@ -73,6 +77,36 @@ function aiActionBadge(action) {
 function groupSelect(groups, id) {
   let html = `<select id="${id}"><option value="">All groups</option>`;
   for (const g of groups) html += `<option value="${esc(g)}">${esc(g)}</option>`;
+  return html + '</select>';
+}
+
+function priorityFilterSelect(id) {
+  return `<select id="${id}"><option value="">All priorities</option><option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option></select>`;
+}
+
+const CATEGORY_STATUSES = {
+  triage:     ['TRIAGE'],
+  backlog:    ['TODO', 'Prioritized'],
+  inprogress: ['Pre-Pro Ready', 'Prepro-In Progress', 'Pod Working'],
+  done:       ['Live', 'Ready for release'],
+  blocked:    ['BLOCK'],
+};
+
+function statusFilterSelect(category, id) {
+  const statuses = CATEGORY_STATUSES[category] || [];
+  if (statuses.length <= 1) return '';
+  let html = `<select id="${id}"><option value="">All statuses</option>`;
+  for (const s of statuses) html += `<option value="${esc(s)}">${esc(s)}</option>`;
+  return html + '</select>';
+}
+
+const EXTRA_PODS = ['Pod31'];
+
+function podSelect(pods, id) {
+  const all = [...new Set([...pods, ...EXTRA_PODS])].sort();
+  let html = `<select id="${id}"><option value="">All pods</option>`;
+  html += '<option value="__empty__">No pod</option>';
+  for (const p of all) html += `<option value="${esc(p)}">${esc(p)}</option>`;
   return html + '</select>';
 }
 
@@ -215,11 +249,11 @@ function modelWarningHtml() {
 function allTasksToTsv(tasks, showAi) {
   const rows = [];
   if (showAi) {
-    rows.push(['Task ID', 'AI Priority', 'AI Action', 'Group', 'AI Description', 'AI Notes'].join('\t'));
-    tasks.forEach(t => rows.push([t.taskId, t.aiPriority, t.aiAction, t.aiGroup || '', t.aiDescription, t.aiNotes || ''].join('\t')));
+    rows.push(['Task ID', 'AI Priority', 'AI Action', 'Group', 'Pod', 'AI Description', 'AI Notes'].join('\t'));
+    tasks.forEach(t => rows.push([t.taskId, t.aiPriority, t.aiAction, t.aiGroup || '', '', t.aiDescription, t.aiNotes || ''].join('\t')));
   } else {
-    rows.push(['ID', 'Score', 'Priority', 'Status', 'Group', 'Prepro', 'Description'].join('\t'));
-    tasks.forEach(t => rows.push([t.id, t.score, t.priority || '--', t.status || '--', t.group || '--', t.preproWork || '--', truncate(t.description, 200)].join('\t')));
+    rows.push(['ID', 'Score', 'Priority', 'Status', 'Group', 'Pod', 'Prepro', 'Description'].join('\t'));
+    tasks.forEach(t => rows.push([t.id, t.score, t.priority || '--', t.status || '--', t.group || '--', t.assignedPod || '--', t.preproWork || '--', truncate(t.description, 200)].join('\t')));
   }
   return rows.join('\n');
 }
@@ -228,11 +262,11 @@ function allTasksToCsv(tasks, showAi) {
   const f = (v) => { const s = String(v ?? ''); return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const rows = [];
   if (showAi) {
-    rows.push('Task ID,AI Priority,AI Action,Group,AI Description,AI Notes');
-    tasks.forEach(t => rows.push([t.taskId, t.aiPriority, t.aiAction, t.aiGroup || '', t.aiDescription, t.aiNotes || ''].map(f).join(',')));
+    rows.push('Task ID,AI Priority,AI Action,Group,Pod,AI Description,AI Notes');
+    tasks.forEach(t => rows.push([t.taskId, t.aiPriority, t.aiAction, t.aiGroup || '', '', t.aiDescription, t.aiNotes || ''].map(f).join(',')));
   } else {
-    rows.push('ID,Score,Priority,Status,Group,Prepro,Description');
-    tasks.forEach(t => rows.push([t.id, t.score, t.priority || '--', t.status || '--', t.group || '--', t.preproWork || '--', truncate(t.description, 200)].map(f).join(',')));
+    rows.push('ID,Score,Priority,Status,Group,Pod,Prepro,Description');
+    tasks.forEach(t => rows.push([t.id, t.score, t.priority || '--', t.status || '--', t.group || '--', t.assignedPod || '--', t.preproWork || '--', truncate(t.description, 200)].map(f).join(',')));
   }
   return rows.join('\n');
 }
@@ -275,9 +309,11 @@ function wireExportToolbar(toolbarId, getAllTasks, showAi) {
 // ── Task Table ───────────────────────────────────────────────
 function taskTable(tasks, opts = {}) {
   const showAi = opts.ai || false;
+  const selectable = opts.selectable !== false;
   let html = '<table class="data-table"><thead><tr>';
+  if (selectable) html += '<th class="col-sel"></th>';
   html += '<th class="col-num">#</th>';
-  if (!showAi) html += '<th class="sortable" data-sort="score">Score</th>';
+  html += '<th class="sortable" data-sort="score">Score</th>';
   html += '<th>ID</th>';
   if (!showAi) {
     html += '<th class="sortable" data-sort="priority">Priority</th>';
@@ -288,6 +324,7 @@ function taskTable(tasks, opts = {}) {
     html += '<th class="sortable" data-sort="aiAction">AI Action</th>';
   }
   html += '<th class="sortable" data-sort="group">Group</th>';
+  html += '<th class="sortable" data-sort="pod">Pod</th>';
   if (!showAi) html += '<th class="sortable" data-sort="prepro">Prepro</th>';
   html += '<th>Description</th>';
   if (showAi) html += '<th>AI Notes</th>';
@@ -296,10 +333,13 @@ function taskTable(tasks, opts = {}) {
   for (let i = 0; i < tasks.length; i++) {
     const t = tasks[i];
     const id = showAi ? t.taskId : t.id;
-    const desc = showAi ? t.aiDescription : truncate(t.description, 80);
-    html += `<tr data-id="${esc(id)}">`;
+    const desc = showAi ? t.aiDescription : truncate(t.description, 200);
+    const pod = showAi ? '' : (t.assignedPod || '');
+    const selected = selectable && isSelected(id);
+    html += `<tr data-id="${esc(id)}"${selected ? ' class="row-selected"' : ''}>`;
+    if (selectable) html += `<td class="col-sel"><button class="sel-btn${selected ? ' sel-active' : ''}" data-sel-id="${esc(id)}" title="${selected ? 'Remove from selection' : 'Add to selection'}"><i data-lucide="${selected ? 'check-circle' : 'circle'}" style="width:14px;height:14px"></i></button></td>`;
     html += `<td class="col-num">${i + 1}</td>`;
-    if (!showAi) html += `<td class="col-score">${scoreBar(t.score)}</td>`;
+    html += `<td class="col-score">${scoreBar(t.score || 0)}</td>`;
     html += `<td class="col-id">${esc(id)}</td>`;
     if (!showAi) {
       html += `<td>${priorityBadge(t.priority)}</td>`;
@@ -310,6 +350,7 @@ function taskTable(tasks, opts = {}) {
       html += `<td>${aiActionBadge(t.aiAction)}</td>`;
     }
     html += `<td>${groupBadge(showAi ? t.aiGroup : t.group)}</td>`;
+    html += `<td class="col-pod">${esc(pod || '--')}</td>`;
     if (!showAi) html += `<td>${preproBadge(t.preproWork)}</td>`;
     html += `<td class="col-desc">${esc(desc)}</td>`;
     if (showAi) html += `<td style="font-size:12px;color:var(--text-muted);max-width:250px">${esc(t.aiNotes || '--')}</td>`;
@@ -319,9 +360,35 @@ function taskTable(tasks, opts = {}) {
   return html;
 }
 
+function wireSelectionButtons(container, tasks, showAi, sourceLabel) {
+  container.querySelectorAll('.sel-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.selId;
+      if (isSelected(id)) {
+        removeFromSelection(id);
+      } else {
+        if (showAi) {
+          const t = tasks.find(t => t.taskId === id);
+          if (t) addAiTaskToSelection(t, sourceLabel);
+        } else {
+          const t = tasks.find(t => t.id === id);
+          if (t) addToSelection(t, sourceLabel);
+        }
+      }
+      const sel = isSelected(id);
+      btn.classList.toggle('sel-active', sel);
+      btn.title = sel ? 'Remove from selection' : 'Add to selection';
+      btn.innerHTML = `<i data-lucide="${sel ? 'check-circle' : 'circle'}" style="width:14px;height:14px"></i>`;
+      btn.closest('tr')?.classList.toggle('row-selected', sel);
+      if (window.lucide) lucide.createIcons();
+    });
+  });
+}
+
 // ── Task Detail ──────────────────────────────────────────────
-function taskDetail(task) {
-  return `<div class="task-detail">
+function taskDetail(task, opts = {}) {
+  let html = `<div class="task-detail">
     <div class="task-detail-header">
       <span class="task-detail-id">${esc(task.id)}</span>
       ${priorityBadge(task.priority)}
@@ -338,27 +405,39 @@ function taskDetail(task) {
       <div class="task-detail-field"><label>Type</label><span>${esc(task.type || '--')}</span></div>
       <div class="task-detail-field"><label>JIRA</label><span>${esc(task.jira || '--')}</span></div>
     </div>
-    <div class="task-detail-desc">${esc(task.description)}</div>
-  </div>`;
+    <div class="task-detail-section">
+      <div class="task-detail-section-label">Description</div>
+      <div class="task-detail-desc">${linkify(esc(task.description))}</div>
+    </div>`;
+  const notes = opts.aiNotes || '';
+  if (notes) {
+    html += `<div class="task-detail-section">
+      <div class="task-detail-section-label">AI Notes</div>
+      <div class="task-detail-notes">${linkify(esc(notes))}</div>
+    </div>`;
+  }
+  html += '</div>';
+  return html;
 }
 
 // ── Click to expand ──────────────────────────────────────────
-function wireClickToExpand(container) {
+function wireClickToExpand(container, notesMap) {
   container.querySelectorAll('tr[data-id]').forEach(row => {
     if (row.dataset.expandWired) return;
     row.dataset.expandWired = '1';
     row.addEventListener('click', async (e) => {
-      if (e.target.closest('button')) return;
+      if (e.target.closest('button, select, input')) return;
       const existing = row.nextElementSibling;
       if (existing?.classList.contains('detail-row')) { existing.remove(); return; }
       container.querySelectorAll('.detail-row').forEach(r => r.remove());
       const task = await api(`/api/tasks/${row.dataset.id}`);
       if (task.error) return;
+      const notes = notesMap ? (notesMap[row.dataset.id] || '') : '';
       const tr = document.createElement('tr');
       tr.className = 'detail-row';
       const td = document.createElement('td');
       td.colSpan = 20;
-      td.innerHTML = taskDetail(task);
+      td.innerHTML = taskDetail(task, { aiNotes: notes });
       tr.appendChild(td);
       row.after(tr);
     });
@@ -381,6 +460,7 @@ function sortTasks(tasks, field, dir, showAi) {
     if (field === 'status') { va = a.status || ''; vb = b.status || ''; return va.localeCompare(vb) * d; }
     if (field === 'aiAction') { va = a.aiAction || ''; vb = b.aiAction || ''; return va.localeCompare(vb) * d; }
     if (field === 'group') { va = (showAi ? a.aiGroup : a.group) || ''; vb = (showAi ? b.aiGroup : b.group) || ''; return va.localeCompare(vb) * d; }
+    if (field === 'pod') { va = a.assignedPod || ''; vb = b.assignedPod || ''; return va.localeCompare(vb) * d; }
     if (field === 'prepro') { va = PREPRO_RANK[a.preproWork] ?? 3; vb = PREPRO_RANK[b.preproWork] ?? 3; return (va - vb) * d; }
     return 0;
   });
@@ -427,13 +507,13 @@ function renderAiResultsHtml(result) {
 
   if (result.text !== undefined) {
     return result.text
-      ? `<div class="ai-prose">${esc(result.text)}</div>`
+      ? `<details class="ai-prose-collapse"><summary>AI Raw Output</summary><div class="ai-prose">${esc(result.text)}</div></details>`
       : '<div style="padding:20px;color:var(--text-muted)">No results returned.</div>';
   }
 
   if (!result.tasks || result.tasks.length === 0) {
     return result.prose
-      ? `<div class="ai-prose">${esc(result.prose)}</div>`
+      ? `<details class="ai-prose-collapse" open><summary>AI Analysis</summary><div class="ai-prose">${esc(result.prose)}</div></details>`
       : '<div style="padding:20px;color:var(--text-muted)">No results returned.</div>';
   }
 
@@ -477,7 +557,7 @@ function renderAiResultsHtml(result) {
     </div>`;
   }
 
-  if (result.prose) html += `<div class="ai-prose">${esc(result.prose)}</div>`;
+  if (result.prose) html += `<details class="ai-prose-collapse"><summary>AI Analysis</summary><div class="ai-prose">${esc(result.prose)}</div></details>`;
   html += `<div class="table-footer">${result.tasks.length} tasks analyzed</div>`;
   return html;
 }
@@ -549,8 +629,12 @@ export function renderDashboard($el, state) {
 
 // ── Task List View ───────────────────────────────────────────
 export function renderTaskList($el, category, state) {
+  const statusHtml = statusFilterSelect(category, 'status-filter');
   let html = '<div class="table-controls">';
   html += `<div class="ai-form-field" style="flex:0 0 180px"><label>Group</label>${groupSelect(state.groups, 'group-filter')}</div>`;
+  html += `<div class="ai-form-field" style="flex:0 0 150px"><label>Priority</label>${priorityFilterSelect('priority-filter')}</div>`;
+  if (statusHtml) html += `<div class="ai-form-field" style="flex:0 0 180px"><label>Status</label>${statusHtml}</div>`;
+  html += `<div class="ai-form-field" style="flex:0 0 180px"><label>Pod</label>${podSelect(state.pods, 'pod-filter')}</div>`;
   html += '</div>';
   html += exportToolbar('list-export');
   html += '<div id="task-table-container"><div class="spinner-container"><div class="spinner"></div></div></div>';
@@ -563,16 +647,25 @@ export function renderTaskList($el, category, state) {
     const container = document.getElementById('task-table-container');
     container.innerHTML = taskTable(tasks) + `<div class="table-footer">Showing ${tasks.length} tasks</div>`;
     wireClickToExpand(container);
+    wireSelectionButtons(container, tasks, false, category);
     sorter.wire(container);
     if (window.lucide) lucide.createIcons();
   }
 
   async function loadTasks() {
     const group = document.getElementById('group-filter')?.value || '';
+    const priority = document.getElementById('priority-filter')?.value || '';
+    const statusVal = document.getElementById('status-filter')?.value || '';
+    const pod = document.getElementById('pod-filter')?.value || '';
     const container = document.getElementById('task-table-container');
     container.innerHTML = '<div class="spinner-container"><div class="spinner"></div></div>';
 
-    const data = await api(`/api/tasks?category=${category}&group=${encodeURIComponent(group)}&limit=100`);
+    let url = `/api/tasks?category=${category}&limit=100`;
+    if (group) url += `&group=${encodeURIComponent(group)}`;
+    if (priority) url += `&priority=${encodeURIComponent(priority)}`;
+    if (statusVal) url += `&status=${encodeURIComponent(statusVal)}`;
+    if (pod) url += `&pod=${encodeURIComponent(pod)}`;
+    const data = await api(url);
     if (!data.tasks || data.tasks.length === 0) {
       currentTasks = [];
       container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">No tasks found.</div>';
@@ -585,6 +678,9 @@ export function renderTaskList($el, category, state) {
 
   wireExportToolbar('list-export', () => currentTasks, false);
   document.getElementById('group-filter')?.addEventListener('change', loadTasks);
+  document.getElementById('priority-filter')?.addEventListener('change', loadTasks);
+  document.getElementById('status-filter')?.addEventListener('change', loadTasks);
+  document.getElementById('pod-filter')?.addEventListener('change', loadTasks);
   if (window.lucide) lucide.createIcons();
   loadTasks();
 }
@@ -629,6 +725,8 @@ export function renderAiView($el, view, state) {
     resultsHtml += `<div style="text-align:center;padding:8px"><button type="button" class="btn btn-sm" id="ai-clear">Clear</button></div>`;
   } else if (job.status === 'done') {
     if (job.result?.tasks?.length) allAiTasks = job.result.tasks;
+    const scores = state.scores || {};
+    for (const t of allAiTasks) t.score = scores[t.taskId] ?? t.score ?? 0;
     if (allAiTasks.length) resultsHtml += exportToolbar('ai-export');
     resultsHtml += renderAiResultsHtml(job.result);
     resultsHtml += `<div style="text-align:center;padding:8px"><button type="button" class="btn btn-sm" id="ai-clear"><i data-lucide="rotate-ccw" style="width:12px;height:12px"></i> New query</button></div>`;
@@ -639,7 +737,10 @@ export function renderAiView($el, view, state) {
   // Wire export
   if (allAiTasks.length) wireExportToolbar('ai-export', () => allAiTasks, true);
 
-  wireClickToExpand($el);
+  const aiNotesMap = {};
+  for (const t of allAiTasks) aiNotesMap[t.taskId] = t.aiNotes || '';
+  wireClickToExpand($el, aiNotesMap);
+  wireSelectionButtons($el, allAiTasks, true, view);
 
   // Wire sorting on each AI results table
   $el.querySelectorAll('.ai-results-section').forEach(section => {
@@ -653,11 +754,15 @@ export function renderAiView($el, view, state) {
       sorted.forEach((t, i) => {
         const tr = document.createElement('tr');
         tr.dataset.id = t.taskId;
-        tr.innerHTML = `<td class="col-num">${i + 1}</td><td class="col-id">${esc(t.taskId)}</td><td>${priorityBadge(t.aiPriority === 'High' ? 'P0' : t.aiPriority === 'Mid' ? 'P1' : 'P2')}</td><td>${aiActionBadge(t.aiAction)}</td><td>${groupBadge(t.aiGroup)}</td><td class="col-desc">${esc(t.aiDescription)}</td><td style="font-size:12px;color:var(--text-muted);max-width:250px">${esc(t.aiNotes || '--')}</td>`;
+        const selected = isSelected(t.taskId);
+        if (selected) tr.className = 'row-selected';
+        tr.innerHTML = `<td class="col-sel"><button class="sel-btn${selected ? ' sel-active' : ''}" data-sel-id="${esc(t.taskId)}" title="${selected ? 'Remove from selection' : 'Add to selection'}"><i data-lucide="${selected ? 'check-circle' : 'circle'}" style="width:14px;height:14px"></i></button></td><td class="col-num">${i + 1}</td><td class="col-score">${scoreBar(t.score || 0)}</td><td class="col-id">${esc(t.taskId)}</td><td>${priorityBadge(t.aiPriority === 'High' ? 'P0' : t.aiPriority === 'Mid' ? 'P1' : 'P2')}</td><td>${aiActionBadge(t.aiAction)}</td><td>${groupBadge(t.aiGroup)}</td><td class="col-pod">--</td><td class="col-desc">${esc(t.aiDescription)}</td><td style="font-size:12px;color:var(--text-muted);max-width:250px">${esc(t.aiNotes || '--')}</td>`;
         tbody.appendChild(tr);
       });
       sorter.updateIndicators(section);
-      wireClickToExpand(section);
+      wireClickToExpand(section, aiNotesMap);
+      wireSelectionButtons(section, allAiTasks, true, view);
+      if (window.lucide) lucide.createIcons();
     });
     sorter.wire(section);
   });
@@ -714,4 +819,186 @@ export function renderAiView($el, view, state) {
   }
 
   document.getElementById('ai-clear')?.addEventListener('click', () => resetAiJob(view));
+}
+
+// ── Selection Review View ───────────────────────────────────
+const PRIORITY_OPTIONS = ['', 'P0', 'P1', 'P2'];
+const STATUS_OPTIONS = ['', 'TRIAGE', 'TODO', 'Prioritized', 'Pre-Pro Ready', 'Prepro-In Progress', 'POD Working', 'Ready for Release', 'Live', 'BLOCK', 'HOLD'];
+
+function selectionFieldSelect(taskId, field, currentValue, original, options) {
+  const val = currentValue || '';
+  let html = `<select class="sel-override" data-task="${esc(taskId)}" data-field="${field}">`;
+  for (const opt of options) {
+    const label = opt || (original ? `${original} (original)` : '--');
+    const selected = val === opt ? ' selected' : '';
+    html += `<option value="${esc(opt)}"${selected}>${esc(label)}</option>`;
+  }
+  html += '</select>';
+  return html;
+}
+
+function selectionToCsv(items) {
+  const f = (v) => { const s = String(v ?? ''); return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const rows = ['ID,Priority,Status,Group,Assigned POD,Description,AI Notes'];
+  for (const t of items) {
+    const p = t.overrides?.priority || t.priority;
+    const s = t.overrides?.status || t.status;
+    const g = t.overrides?.group || t.group;
+    const pod = t.overrides?.assignedPod || t.assignedPod;
+    rows.push([t.id, p, s, g, pod, t.description, t.aiNotes].map(f).join(','));
+  }
+  return rows.join('\n');
+}
+
+function selectionToTsv(items) {
+  const rows = ['ID\tPriority\tStatus\tGroup\tAssigned POD\tDescription\tAI Notes'];
+  for (const t of items) {
+    const p = t.overrides?.priority || t.priority;
+    const s = t.overrides?.status || t.status;
+    const g = t.overrides?.group || t.group;
+    const pod = t.overrides?.assignedPod || t.assignedPod;
+    rows.push([t.id, p, s, g, pod, t.description, t.aiNotes].join('\t'));
+  }
+  return rows.join('\n');
+}
+
+export function renderSelectionView($el, state) {
+  const POD_OPTIONS = ['', ...[...new Set([...(state.pods || []), ...EXTRA_PODS])].sort()];
+  const scores = state.scores || {};
+  const items = getSelection();
+  for (const t of items) t.score = scores[t.id] ?? t.score ?? 0;
+
+  if (items.length === 0) {
+    $el.innerHTML = `<div class="empty-state">
+      <i data-lucide="clipboard-list" style="width:64px;height:64px;opacity:0.5;margin-bottom:16px"></i>
+      <h2>No tasks selected</h2>
+      <p>Select tasks from any list or AI result using the circle button on each row.</p>
+    </div>`;
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
+
+  let html = '';
+
+  // Toolbar
+  html += '<div class="selection-toolbar">';
+  html += `<span class="selection-count">${items.length} task${items.length !== 1 ? 's' : ''} selected</span>`;
+  html += '<div class="selection-actions">';
+  html += '<button type="button" class="btn btn-sm" id="sel-copy"><i data-lucide="clipboard-copy" style="width:12px;height:12px"></i> Copy for Sheets</button>';
+  html += '<button type="button" class="btn btn-sm" id="sel-download"><i data-lucide="download" style="width:12px;height:12px"></i> Download CSV</button>';
+  html += '<button type="button" class="btn btn-sm btn-danger" id="sel-clear"><i data-lucide="trash-2" style="width:12px;height:12px"></i> Clear All</button>';
+  html += '</div></div>';
+
+  // Editable table
+  html += '<div id="sel-table-container">';
+  html += '<table class="data-table selection-table"><thead><tr>';
+  html += '<th class="col-sel"></th>';
+  html += '<th class="sortable" data-sort="score">Score</th>';
+  html += '<th>ID</th>';
+  html += '<th class="sortable" data-sort="priority">Priority</th>';
+  html += '<th class="sortable" data-sort="status">Status</th>';
+  html += '<th class="sortable" data-sort="group">Group</th>';
+  html += '<th class="sortable" data-sort="pod">Assigned POD</th>';
+  html += '<th>Description</th>';
+  html += '<th>AI Notes</th>';
+  html += '<th class="sortable" data-sort="source">Source</th>';
+  html += '</tr></thead><tbody>';
+
+  for (const t of items) {
+    const effPriority = t.overrides?.priority || t.priority;
+    const effStatus = t.overrides?.status || t.status;
+    const hasPriorityOverride = !!t.overrides?.priority;
+    const hasStatusOverride = !!t.overrides?.status;
+
+    html += `<tr data-id="${esc(t.id)}">`;
+    html += `<td class="col-sel"><button class="sel-btn sel-remove" data-sel-id="${esc(t.id)}" title="Remove from selection"><i data-lucide="x-circle" style="width:14px;height:14px"></i></button></td>`;
+    html += `<td class="col-score">${scoreBar(t.score || 0)}</td>`;
+    html += `<td class="col-id">${esc(t.id)}</td>`;
+    html += `<td>${selectionFieldSelect(t.id, 'priority', effPriority, t.priority, PRIORITY_OPTIONS)}${hasPriorityOverride ? '<span class="override-badge">edited</span>' : ''}</td>`;
+    html += `<td>${selectionFieldSelect(t.id, 'status', effStatus, t.status, STATUS_OPTIONS)}${hasStatusOverride ? '<span class="override-badge">edited</span>' : ''}</td>`;
+    const effPod = t.overrides?.assignedPod || t.assignedPod;
+    const hasPodOverride = !!t.overrides?.assignedPod;
+    html += `<td>${groupBadge(t.overrides?.group || t.group)}</td>`;
+    html += `<td>${selectionFieldSelect(t.id, 'assignedPod', effPod, t.assignedPod, POD_OPTIONS)}${hasPodOverride ? '<span class="override-badge">edited</span>' : ''}</td>`;
+    html += `<td class="col-desc">${esc(truncate(t.description, 200))}</td>`;
+    html += `<td><input type="text" class="sel-notes-input" data-task="${esc(t.id)}" value="${esc(t.aiNotes || '')}" placeholder="Add notes..."></td>`;
+    html += `<td><span class="source-badge">${esc(t.source || '--')}</span></td>`;
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  html += `<div class="table-footer">${items.length} tasks in selection</div>`;
+  html += '</div>';
+
+  $el.innerHTML = html;
+  if (window.lucide) lucide.createIcons();
+
+  const selNotesMap = {};
+  for (const t of items) selNotesMap[t.id] = t.aiNotes || '';
+  wireClickToExpand($el, selNotesMap);
+
+  // Wire sorting
+  const selSortState = { field: null, dir: 'asc' };
+  function selSortItems(field) {
+    if (selSortState.field === field) selSortState.dir = selSortState.dir === 'asc' ? 'desc' : 'asc';
+    else { selSortState.field = field; selSortState.dir = 'asc'; }
+    const d = selSortState.dir === 'asc' ? 1 : -1;
+    items.sort((a, b) => {
+      let va, vb;
+      if (field === 'score') { return ((a.score || 0) - (b.score || 0)) * d; }
+      if (field === 'priority') { va = PRIORITY_RANK[a.overrides?.priority || a.priority] ?? 3; vb = PRIORITY_RANK[b.overrides?.priority || b.priority] ?? 3; return (va - vb) * d; }
+      if (field === 'status') { va = (a.overrides?.status || a.status || ''); vb = (b.overrides?.status || b.status || ''); return va.localeCompare(vb) * d; }
+      if (field === 'group') { va = (a.overrides?.group || a.group || ''); vb = (b.overrides?.group || b.group || ''); return va.localeCompare(vb) * d; }
+      if (field === 'pod') { va = (a.overrides?.assignedPod || a.assignedPod || ''); vb = (b.overrides?.assignedPod || b.assignedPod || ''); return va.localeCompare(vb) * d; }
+      if (field === 'source') { va = a.source || ''; vb = b.source || ''; return va.localeCompare(vb) * d; }
+      return 0;
+    });
+    renderSelectionView($el, state);
+  }
+  $el.querySelectorAll('th.sortable').forEach(th => {
+    th.addEventListener('click', () => selSortItems(th.dataset.sort));
+  });
+
+  // Wire remove buttons
+  $el.querySelectorAll('.sel-remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeFromSelection(btn.dataset.selId);
+    });
+  });
+
+  // Wire override selects
+  $el.querySelectorAll('.sel-override').forEach(sel => {
+    sel.addEventListener('change', () => {
+      updateSelectionOverride(sel.dataset.task, sel.dataset.field, sel.value);
+    });
+  });
+
+  // Wire notes inputs (debounced)
+  $el.querySelectorAll('.sel-notes-input').forEach(input => {
+    let timer;
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => updateSelectionNotes(input.dataset.task, input.value), 400);
+    });
+  });
+
+  // Wire export buttons
+  document.getElementById('sel-copy')?.addEventListener('click', () => {
+    const tsv = selectionToTsv(getSelection());
+    navigator.clipboard.writeText(tsv).then(() => {
+      const btn = document.getElementById('sel-copy');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i data-lucide="check" style="width:12px;height:12px"></i> Copied!';
+      if (window.lucide) lucide.createIcons();
+      setTimeout(() => { btn.innerHTML = orig; if (window.lucide) lucide.createIcons(); }, 2000);
+    });
+  });
+
+  document.getElementById('sel-download')?.addEventListener('click', () => {
+    downloadBlob(selectionToCsv(getSelection()), 'selection.csv', 'text/csv');
+  });
+
+  document.getElementById('sel-clear')?.addEventListener('click', () => {
+    if (confirm('Remove all tasks from selection?')) clearSelection();
+  });
 }

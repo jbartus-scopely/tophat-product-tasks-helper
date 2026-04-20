@@ -150,3 +150,98 @@ export function resetAiJob(view) {
   aiJobs[view] = { status: 'idle', result: null, error: null, params: null, startedAt: null };
   notify();
 }
+
+// ── Task Selection Cart (localStorage) ──────────────────────
+const SELECTION_KEY = 'pth_selection';
+const selectionListeners = new Set();
+
+function loadSelection() {
+  try { return JSON.parse(localStorage.getItem(SELECTION_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveSelection(items) {
+  localStorage.setItem(SELECTION_KEY, JSON.stringify(items));
+  for (const fn of selectionListeners) {
+    try { fn(); } catch (e) { console.error('Selection listener error:', e); }
+  }
+}
+
+export function onSelectionChange(fn) {
+  selectionListeners.add(fn);
+  return () => selectionListeners.delete(fn);
+}
+
+export function getSelection() { return loadSelection(); }
+export function getSelectionCount() { return loadSelection().length; }
+export function isSelected(taskId) { return loadSelection().some(t => t.id === taskId); }
+
+export function addToSelection(task, source) {
+  const items = loadSelection();
+  if (items.some(t => t.id === task.id)) return;
+  items.push({
+    id: task.id,
+    score: task.score || 0,
+    priority: task.priority || '',
+    status: task.status || '',
+    group: task.group || '',
+    assignedPod: task.assignedPod || '',
+    description: task.description || task.aiDescription || '',
+    aiNotes: task.aiNotes || '',
+    source: source || 'manual',
+    addedAt: Date.now(),
+    overrides: {},
+  });
+  saveSelection(items);
+}
+
+export function addAiTaskToSelection(aiTask, source) {
+  const items = loadSelection();
+  if (items.some(t => t.id === aiTask.taskId)) return;
+  items.push({
+    id: aiTask.taskId,
+    score: aiTask.score || 0,
+    priority: '',
+    status: '',
+    group: aiTask.aiGroup || '',
+    assignedPod: '',
+    description: aiTask.aiDescription || '',
+    aiNotes: aiTask.aiNotes || '',
+    source: source || 'ai',
+    addedAt: Date.now(),
+    overrides: {},
+  });
+  saveSelection(items);
+}
+
+export function removeFromSelection(taskId) {
+  saveSelection(loadSelection().filter(t => t.id !== taskId));
+}
+
+export function clearSelection() {
+  localStorage.removeItem(SELECTION_KEY);
+  for (const fn of selectionListeners) {
+    try { fn(); } catch (e) { console.error('Selection listener error:', e); }
+  }
+}
+
+export function updateSelectionOverride(taskId, field, value) {
+  const items = loadSelection();
+  const item = items.find(t => t.id === taskId);
+  if (!item) return;
+  if (!item.overrides) item.overrides = {};
+  if (value === '' || value === item[field]) {
+    delete item.overrides[field];
+  } else {
+    item.overrides[field] = value;
+  }
+  saveSelection(items);
+}
+
+export function updateSelectionNotes(taskId, notes) {
+  const items = loadSelection();
+  const item = items.find(t => t.id === taskId);
+  if (!item) return;
+  item.aiNotes = notes;
+  saveSelection(items);
+}
