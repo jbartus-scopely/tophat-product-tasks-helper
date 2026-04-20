@@ -16,7 +16,7 @@ function getModelArgs(): string[] {
   return model ? ['--model', model] : [];
 }
 
-function loadPrompt(name: string, vars: Record<string, string> = {}): string {
+export function loadPrompt(name: string, vars: Record<string, string> = {}): string {
   const filePath = resolve(PROMPTS_DIR, `${name}.txt`);
   let content = readFileSync(filePath, 'utf-8').trim();
   for (const [key, value] of Object.entries(vars)) {
@@ -29,7 +29,7 @@ function getSystemPrompt(): string {
   return loadPrompt('system');
 }
 
-function tasksToCompactCsv(tasks: Task[]): string {
+export function tasksToCompactCsv(tasks: Task[]): string {
   const header = 'ID,Priority,Status,Group,Type,Prepro,Risk,Appearance,Description';
   const rows = tasks.map((t) => {
     const desc = t.description
@@ -72,6 +72,41 @@ export function printAiUnavailable(): void {
   console.log(chalk.yellow('  AI features require the Claude CLI to be installed.'));
   console.log(chalk.dim('  Install it from: https://claude.ai/claude-code'));
   console.log('');
+}
+
+function spawnClaude(prompt: string, modelArgs: string[]): Promise<string | null> {
+  const claudePath = findClaudeCli();
+  if (!claudePath) return Promise.resolve(null);
+
+  return new Promise<string | null>((resolve) => {
+    const child = spawn(claudePath, [
+      '--print',
+      ...modelArgs,
+      '--system-prompt', getSystemPrompt(),
+      prompt,
+    ], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env },
+    });
+
+    let stdout = '';
+    child.stdout.on('data', (data: Buffer) => { stdout += data.toString(); });
+    child.on('close', (code) => { resolve(code === 0 ? stdout : null); });
+    child.on('error', () => { resolve(null); });
+  });
+}
+
+export async function runClaudeCollectRaw(prompt: string, model?: string): Promise<string | null> {
+  const modelArgs = model ? ['--model', model] : getModelArgs();
+  const result = await spawnClaude(prompt, modelArgs);
+  if (result !== null) return result;
+
+  // If model was explicitly set and failed, retry without model override
+  if (model) {
+    console.log(`  !!  Model "${model}" failed, retrying with default...`);
+    return spawnClaude(prompt, getModelArgs());
+  }
+  return null;
 }
 
 async function runClaudeCollect(prompt: string): Promise<string | null> {
@@ -269,7 +304,7 @@ export async function analyzeBacklog(backlog: BacklogData, ask: string, group?: 
   return result;
 }
 
-function parseGroomResponse(raw: string): GroomResult {
+export function parseGroomResponse(raw: string): GroomResult {
   const lines = raw.split('\n');
   const tasks: GroomedTask[] = [];
   const proseLines: string[] = [];

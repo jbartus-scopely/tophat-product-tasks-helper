@@ -340,6 +340,17 @@ program
     await findDuplicates(backlog, opts.cache);
   });
 
+// ── web ──────────────────────────────────────────────────────
+
+program
+  .command('web')
+  .description('Start the web UI')
+  .option('-p, --port <port>', 'Port number', '3000')
+  .action(async (opts) => {
+    const { startServer } = await import('./server.js');
+    startServer(parseInt(opts.port), program.opts().file);
+  });
+
 // ── Default (interactive mode) ───────────────────────────────
 
 program.action(async () => {

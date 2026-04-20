@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PTH - Product Tasks Helper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">PTH</div>
+        <div class="logo-sub">Product Tasks Helper</div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Overview</div>
+        <a href="#dashboard" class="nav-item active" data-view="dashboard">
+          <i data-lucide="layout-dashboard" class="nav-icon"></i> Dashboard
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Task Lists</div>
+        <a href="#triage" class="nav-item" data-view="triage">
+          <i data-lucide="inbox" class="nav-icon"></i> Triage
+        </a>
+        <a href="#backlog" class="nav-item" data-view="backlog">
+          <i data-lucide="list-todo" class="nav-icon"></i> Backlog
+        </a>
+        <a href="#inprogress" class="nav-item" data-view="inprogress">
+          <i data-lucide="loader" class="nav-icon"></i> In Progress
+        </a>
+        <a href="#done" class="nav-item" data-view="done">
+          <i data-lucide="circle-check" class="nav-icon"></i> Done
+        </a>
+        <a href="#blocked" class="nav-item" data-view="blocked">
+          <i data-lucide="octagon-x" class="nav-icon"></i> Blocked
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">AI Tools</div>
+        <a href="#analyze" class="nav-item" data-view="analyze">
+          <i data-lucide="sparkles" class="nav-icon"></i> Analyze
+        </a>
+        <a href="#groom" class="nav-item" data-view="groom">
+          <i data-lucide="scan-search" class="nav-icon"></i> Groom Triage
+        </a>
+        <a href="#prioritize" class="nav-item" data-view="prioritize">
+          <i data-lucide="arrow-up-circle" class="nav-icon"></i> Prioritize
+        </a>
+        <a href="#duplicates" class="nav-item" data-view="duplicates">
+          <i data-lucide="copy" class="nav-icon"></i> Duplicates
+        </a>
+      </div>
+
+      <div class="nav-section nav-bottom">
+        <div class="nav-label">Data</div>
+        <button class="nav-item upload-btn" id="upload-btn">
+          <i data-lucide="upload" class="nav-icon"></i> Upload CSV
+        </button>
+        <input type="file" id="csv-input" accept=".csv" hidden>
+      </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="content">
+      <!-- Top bar -->
+      <header class="topbar">
+        <h1 class="page-title" id="page-title">Dashboard</h1>
+        <div class="topbar-right">
+          <span class="ai-badge" id="ai-badge">AI: checking...</span>
+          <span class="backlog-badge" id="backlog-badge">No data</span>
+        </div>
+      </header>
+
+      <!-- Drop zone overlay -->
+      <div class="drop-zone" id="drop-zone">
+        <div class="drop-zone-content">
+          <i data-lucide="file-up" style="width:48px;height:48px;margin-bottom:12px"></i>
+          <p>Drop your CSV file here</p>
+        </div>
+      </div>
+
+      <!-- View container -->
+      <div class="view-container" id="view-container">
+        <div class="empty-state" id="empty-state">
+          <i data-lucide="file-spreadsheet" style="width:64px;height:64px;opacity:0.5;margin-bottom:16px"></i>
+          <h2>No backlog loaded</h2>
+          <p>Upload a CSV file or drop it anywhere on the page to get started.</p>
+          <button class="btn btn-primary" id="empty-upload-btn">Upload CSV</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => lucide.createIcons());
+  </script>
+</body>
+</html>

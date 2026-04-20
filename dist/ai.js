@@ -13,7 +13,7 @@ function getModelArgs() {
     const model = process.env.PTH_MODEL;
     return model ? ['--model', model] : [];
 }
-function loadPrompt(name, vars = {}) {
+export function loadPrompt(name, vars = {}) {
     const filePath = resolve(PROMPTS_DIR, `${name}.txt`);
     let content = readFileSync(filePath, 'utf-8').trim();
     for (const [key, value] of Object.entries(vars)) {
@@ -24,7 +24,7 @@ function loadPrompt(name, vars = {}) {
 function getSystemPrompt() {
     return loadPrompt('system');
 }
-function tasksToCompactCsv(tasks) {
+export function tasksToCompactCsv(tasks) {
     const header = 'ID,Priority,Status,Group,Type,Prepro,Risk,Appearance,Description';
     const rows = tasks.map((t) => {
         const desc = t.description
@@ -65,6 +65,38 @@ export function printAiUnavailable() {
     console.log(chalk.yellow('  AI features require the Claude CLI to be installed.'));
     console.log(chalk.dim('  Install it from: https://claude.ai/claude-code'));
     console.log('');
+}
+function spawnClaude(prompt, modelArgs) {
+    const claudePath = findClaudeCli();
+    if (!claudePath)
+        return Promise.resolve(null);
+    return new Promise((resolve) => {
+        const child = spawn(claudePath, [
+            '--print',
+            ...modelArgs,
+            '--system-prompt', getSystemPrompt(),
+            prompt,
+        ], {
+            stdio: ['ignore', 'pipe', 'pipe'],
+            env: { ...process.env },
+        });
+        let stdout = '';
+        child.stdout.on('data', (data) => { stdout += data.toString(); });
+        child.on('close', (code) => { resolve(code === 0 ? stdout : null); });
+        child.on('error', () => { resolve(null); });
+    });
+}
+export async function runClaudeCollectRaw(prompt, model) {
+    const modelArgs = model ? ['--model', model] : getModelArgs();
+    const result = await spawnClaude(prompt, modelArgs);
+    if (result !== null)
+        return result;
+    // If model was explicitly set and failed, retry without model override
+    if (model) {
+        console.log(`  !!  Model "${model}" failed, retrying with default...`);
+        return spawnClaude(prompt, getModelArgs());
+    }
+    return null;
 }
 async function runClaudeCollect(prompt) {
     const claudePath = findClaudeCli();
@@ -232,7 +264,7 @@ export async function analyzeBacklog(backlog, ask, group) {
     }
     return result;
 }
-function parseGroomResponse(raw) {
+export function parseGroomResponse(raw) {
     const lines = raw.split('\n');
     const tasks = [];
     const proseLines = [];

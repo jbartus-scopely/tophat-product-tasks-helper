@@ -1,7 +1,11 @@
-import type { BacklogData, GroomResult } from './types.js';
+import type { Task, BacklogData, GroomResult } from './types.js';
+export declare function loadPrompt(name: string, vars?: Record<string, string>): string;
+export declare function tasksToCompactCsv(tasks: Task[]): string;
 export declare function checkAiAvailable(): boolean;
 export declare function printAiUnavailable(): void;
+export declare function runClaudeCollectRaw(prompt: string, model?: string): Promise<string | null>;
 export declare function analyzeBacklog(backlog: BacklogData, ask: string, group?: string): Promise<GroomResult | null>;
+export declare function parseGroomResponse(raw: string): GroomResult;
 export declare function groomTasks(backlog: BacklogData, group?: string, verbose?: boolean, cache?: boolean): Promise<GroomResult | null>;
 export declare function prioritizeTasks(backlog: BacklogData, group?: string, verbose?: boolean, cache?: boolean): Promise<GroomResult | null>;
 export declare function findDuplicates(backlog: BacklogData, cache?: boolean): Promise<void>;

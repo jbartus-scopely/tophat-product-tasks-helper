@@ -1,0 +1,232 @@
+import { Hono } from 'hono';
+import { serve } from '@hono/node-server';
+import { readFileSync, existsSync } from 'fs';
+import { resolve, dirname, extname } from 'path';
+import { fileURLToPath } from 'url';
+import { loadBacklog, computeStats, getGroups, filterTasks, getTask, isAiAvailable, apiAnalyze, apiGroom, apiPrioritize, apiFindDuplicates, } from './api.js';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const WEB_DIR = resolve(__dirname, '..', 'src', 'web');
+const DEFAULT_CSV = 'Forever Game Roadmap - Product Tasks Backlog.csv';
+const MIME_TYPES = {
+    '.html': 'text/html',
+    '.css': 'text/css',
+    '.js': 'application/javascript',
+    '.json': 'application/json',
+    '.svg': 'image/svg+xml',
+    '.png': 'image/png',
+};
+let backlog = null;
+function timestamp() {
+    return new Date().toLocaleTimeString('en-GB', { hour12: false });
+}
+function log(icon, msg) {
+    console.log(`  ${icon}  [${timestamp()}] ${msg}`);
+}
+function tryLoadDefaultCsv(filePath) {
+    const candidates = filePath
+        ? [resolve(filePath)]
+        : [
+            resolve(process.cwd(), DEFAULT_CSV),
+            resolve(process.cwd(), '..', DEFAULT_CSV),
+        ];
+    for (const c of candidates) {
+        if (existsSync(c)) {
+            const csv = readFileSync(c, 'utf-8');
+            backlog = loadBacklog(csv);
+            return;
+        }
+    }
+}
+function serializeBacklog(b) {
+    return {
+        tasks: b.tasks,
+        duplicateIds: Object.fromEntries(b.duplicateIds),
+        warnings: b.warnings,
+        totalRaw: b.totalRaw,
+        filtered: b.filtered,
+    };
+}
+function requireBacklog() {
+    if (!backlog)
+        throw new Error('No backlog loaded. Upload a CSV first.');
+    return backlog;
+}
+export function startServer(port, filePath) {
+    tryLoadDefaultCsv(filePath);
+    const app = new Hono();
+    // ── Static files ─────────────────────────────────────────
+    app.get('/', (c) => {
+        const html = readFileSync(resolve(WEB_DIR, 'index.html'), 'utf-8');
+        return c.html(html);
+    });
+    app.get('/:file{.+\\.(css|js|svg|png)}', (c) => {
+        const file = c.req.param('file');
+        const filePath = resolve(WEB_DIR, file);
+        if (!filePath.startsWith(WEB_DIR) || !existsSync(filePath)) {
+            return c.notFound();
+        }
+        const ext = extname(filePath);
+        const mime = MIME_TYPES[ext] || 'application/octet-stream';
+        const content = readFileSync(filePath, 'utf-8');
+        return c.text(content, 200, { 'Content-Type': mime });
+    });
+    // ── API: Upload CSV ──────────────────────────────────────
+    app.post('/api/upload', async (c) => {
+        try {
+            const body = await c.req.parseBody();
+            const file = body['file'];
+            if (!file || typeof file === 'string') {
+                return c.json({ error: 'No file uploaded' }, 400);
+            }
+            const csv = await file.text();
+            log('>>', 'CSV upload received');
+            backlog = loadBacklog(csv);
+            log('<<', `CSV loaded — ${backlog.tasks.length} tasks`);
+            return c.json({ success: true, stats: computeStats(backlog) });
+        }
+        catch (e) {
+            return c.json({ error: e.message }, 400);
+        }
+    });
+    // ── API: Backlog data ────────────────────────────────────
+    app.get('/api/backlog', (c) => {
+        if (!backlog)
+            return c.json({ loaded: false });
+        return c.json({ loaded: true, ...serializeBacklog(backlog) });
+    });
+    app.get('/api/stats', (c) => {
+        try {
+            return c.json(computeStats(requireBacklog()));
+        }
+        catch (e) {
+            return c.json({ error: e.message }, 400);
+        }
+    });
+    app.get('/api/groups', (c) => {
+        try {
+            return c.json(getGroups(requireBacklog()));
+        }
+        catch (e) {
+            return c.json({ error: e.message }, 400);
+        }
+    });
+    app.get('/api/tasks', (c) => {
+        try {
+            const category = c.req.query('category') || 'backlog';
+            const group = c.req.query('group') || undefined;
+            const limit = parseInt(c.req.query('limit') || '50');
+            return c.json(filterTasks(requireBacklog(), category, group, limit));
+        }
+        catch (e) {
+            return c.json({ error: e.message }, 400);
+        }
+    });
+    app.get('/api/tasks/:id', (c) => {
+        try {
+            const task = getTask(requireBacklog(), c.req.param('id'));
+            if (!task)
+                return c.json({ error: 'Task not found' }, 404);
+            return c.json(task);
+        }
+        catch (e) {
+            return c.json({ error: e.message }, 400);
+        }
+    });
+    // ── API: AI ──────────────────────────────────────────────
+    app.get('/api/ai/status', (c) => {
+        return c.json({ available: isAiAvailable() });
+    });
+    app.get('/api/ai/models', (c) => {
+        return c.json([
+            { id: '', label: 'Default (CLI setting)', category: 'default' },
+            { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', category: 'fast', desc: 'Fastest, good for simple queries' },
+            { id: 'claude-sonnet-4-5-20250514', label: 'Sonnet 4.5', category: 'fast', desc: 'Fast and capable' },
+            { id: 'claude-sonnet-4-6-20250514', label: 'Sonnet 4.6', category: 'balanced', desc: 'Best balance of speed and quality' },
+            { id: 'claude-opus-4-6-20250414', label: 'Opus 4.6', category: 'thoughtful', desc: 'Deep analysis, slower' },
+            { id: 'claude-opus-4-7-20250506', label: 'Opus 4.7', category: 'thoughtful', desc: 'Most capable, slowest' },
+        ]);
+    });
+    app.post('/api/ai/analyze', async (c) => {
+        try {
+            const { ask, group, model } = await c.req.json();
+            if (!ask)
+                return c.json({ error: 'Missing "ask" field' }, 400);
+            const label = group ? `analyze [${group}]` : 'analyze';
+            log('>>', `${label} — "${ask}"${model ? ` (${model})` : ''}`);
+            const start = Date.now();
+            const result = await apiAnalyze(requireBacklog(), ask, group, model || undefined);
+            const sec = ((Date.now() - start) / 1000).toFixed(1);
+            const count = result?.tasks.length ?? 0;
+            log('<<', `${label} done — ${count} tasks, ${sec}s`);
+            return c.json(result || { tasks: [], prose: '' });
+        }
+        catch (e) {
+            log('!!', `analyze error — ${e.message}`);
+            return c.json({ error: e.message }, 500);
+        }
+    });
+    app.post('/api/ai/groom', async (c) => {
+        try {
+            const { group, cache, model } = await c.req.json();
+            const label = group ? `groom [${group}]` : 'groom';
+            log('>>', `${label}${cache ? ' (cached)' : ''}${model ? ` (${model})` : ''}`);
+            const start = Date.now();
+            const result = await apiGroom(requireBacklog(), group, cache, model || undefined);
+            const sec = ((Date.now() - start) / 1000).toFixed(1);
+            const count = result?.tasks.length ?? 0;
+            log('<<', `${label} done — ${count} tasks, ${sec}s`);
+            return c.json(result || { tasks: [], prose: '' });
+        }
+        catch (e) {
+            log('!!', `groom error — ${e.message}`);
+            return c.json({ error: e.message }, 500);
+        }
+    });
+    app.post('/api/ai/prioritize', async (c) => {
+        try {
+            const { group, cache, model } = await c.req.json();
+            const label = group ? `prioritize [${group}]` : 'prioritize';
+            log('>>', `${label}${cache ? ' (cached)' : ''}${model ? ` (${model})` : ''}`);
+            const start = Date.now();
+            const result = await apiPrioritize(requireBacklog(), group, cache, model || undefined);
+            const sec = ((Date.now() - start) / 1000).toFixed(1);
+            const count = result?.tasks.length ?? 0;
+            log('<<', `${label} done — ${count} tasks, ${sec}s`);
+            return c.json(result || { tasks: [], prose: '' });
+        }
+        catch (e) {
+            log('!!', `prioritize error — ${e.message}`);
+            return c.json({ error: e.message }, 500);
+        }
+    });
+    app.post('/api/ai/duplicates', async (c) => {
+        try {
+            const { cache, model } = await c.req.json();
+            log('>>', `duplicates${cache ? ' (cached)' : ''}${model ? ` (${model})` : ''}`);
+            const start = Date.now();
+            const result = await apiFindDuplicates(requireBacklog(), cache, model || undefined);
+            const sec = ((Date.now() - start) / 1000).toFixed(1);
+            log('<<', `duplicates done — ${sec}s`);
+            return c.json(result || { text: '' });
+        }
+        catch (e) {
+            log('!!', `duplicates error — ${e.message}`);
+            return c.json({ error: e.message }, 500);
+        }
+    });
+    serve({ fetch: app.fetch, port }, () => {
+        const loaded = backlog ? `${backlog.tasks.length} tasks loaded` : 'no CSV loaded';
+        console.log(`\n  PTH Web UI running at http://localhost:${port}`);
+        console.log(`  ${loaded}\n`);
+    });
+}
+// Allow running directly: npx tsx src/server.ts
+const isMain = process.argv[1] && (process.argv[1].endsWith('/server.ts') ||
+    process.argv[1].endsWith('/server.js'));
+if (isMain) {
+    await import('dotenv/config');
+    const port = parseInt(process.env.PTH_PORT || '3000');
+    startServer(port);
+}
+//# sourceMappingURL=server.js.map

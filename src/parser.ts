@@ -45,7 +45,10 @@ function normalize(val: string): string {
 }
 
 export function parseBacklog(filePath: string): BacklogData {
-  const raw = readFileSync(filePath, 'utf-8');
+  return parseBacklogFromString(readFileSync(filePath, 'utf-8'));
+}
+
+export function parseBacklogFromString(raw: string): BacklogData {
   const records: Record<string, string>[] = parse(raw, {
     columns: true,
     skip_empty_lines: true,

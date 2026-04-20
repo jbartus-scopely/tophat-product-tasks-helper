@@ -8,15 +8,18 @@
   },
   "scripts": {
     "pth": "tsx src/cli.ts",
+    "web": "tsx src/server.ts",
     "build": "tsc"
   },
   "dependencies": {
+    "@hono/node-server": "^1.19.14",
     "@inquirer/prompts": "^8.4.1",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
     "commander": "^13.1.0",
     "csv-parse": "^5.6.0",
     "dotenv": "^17.4.2",
+    "hono": "^4.12.14",
     "ora": "^8.2.0"
   },
   "devDependencies": {
