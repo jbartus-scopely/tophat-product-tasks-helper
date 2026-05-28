@@ -48,6 +48,20 @@ export function tasksToCompactCsv(tasks) {
     });
     return [header, ...rows].join('\n');
 }
+export function tasksToIdDescCsv(tasks) {
+    const header = 'ID,Description';
+    const rows = tasks.map((t) => {
+        const desc = t.description
+            .replace(/\n+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 150)
+            .replace(/,/g, ';')
+            .replace(/"/g, "'");
+        return `${t.id},${desc}`;
+    });
+    return [header, ...rows].join('\n');
+}
 function findClaudeCli() {
     try {
         const path = execFileSync('which', ['claude'], { encoding: 'utf-8' }).trim();

@@ -2,8 +2,11 @@ import { parseBacklogFromString } from './parser.js';
 import { scoreTasks } from './scorer.js';
 import {
   checkAiAvailable,
+  checkClaudeAvailable,
+  checkCodexAvailable,
   loadPrompt,
   tasksToCompactCsv,
+  tasksToIdDescCsv,
   parseGroomResponse,
   runClaudeCollectRaw,
 } from './ai.js';
@@ -159,6 +162,14 @@ export function isAiAvailable(): boolean {
   return checkAiAvailable();
 }
 
+export function isClaudeAvailable(): boolean {
+  return checkClaudeAvailable();
+}
+
+export function isCodexAvailable(): boolean {
+  return checkCodexAvailable();
+}
+
 export async function apiAnalyze(
   backlog: BacklogData,
   ask: string,
@@ -273,7 +284,7 @@ export async function apiFindDuplicates(
   model?: string
 ): Promise<GroomResult | null> {
   const tasks = backlog.tasks.filter((t) => t.id && t.description);
-  const csv = tasksToCompactCsv(tasks);
+  const csv = tasksToIdDescCsv(tasks);
 
   const prompt = loadPrompt('duplicates', {
     taskCount: String(tasks.length),

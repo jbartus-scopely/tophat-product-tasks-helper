@@ -218,8 +218,16 @@ function modelSelect() {
   const selected = getSelectedModel();
   if (!models.length) return '<select id="ai-model" class="model-select"><option value="">Default (CLI setting)</option></select>';
 
-  const CATEGORY_LABELS = { default: '', fast: 'Fast', balanced: 'Balanced', thoughtful: 'Thoughtful' };
-  const CATEGORY_ORDER = ['default', 'fast', 'balanced', 'thoughtful'];
+  const CATEGORY_LABELS = {
+    default: '',
+    fast: 'Claude — Fast',
+    balanced: 'Claude — Balanced',
+    thoughtful: 'Claude — Thoughtful',
+    'codex-fast': 'Codex — Fast',
+    'codex-balanced': 'Codex — Balanced',
+    'codex-thoughtful': 'Codex — Thoughtful',
+  };
+  const CATEGORY_ORDER = ['default', 'fast', 'balanced', 'thoughtful', 'codex-fast', 'codex-balanced', 'codex-thoughtful'];
   const grouped = {};
   for (const m of models) {
     if (!grouped[m.category]) grouped[m.category] = [];
@@ -562,6 +570,80 @@ function renderAiResultsHtml(result) {
   return html;
 }
 
+// ── Duplicates Results Renderer ──────────────────────────────
+function renderDuplicatesResultsHtml(result) {
+  if (!result) return '<div style="padding:20px;color:var(--text-muted)">No results returned.</div>';
+
+  if (result.text !== undefined) {
+    return result.text
+      ? `<details class="ai-prose-collapse"><summary>AI Raw Output</summary><div class="ai-prose">${esc(result.text)}</div></details>`
+      : '<div style="padding:20px;color:var(--text-muted)">No results returned.</div>';
+  }
+
+  if (!result.tasks || result.tasks.length === 0) {
+    return result.prose
+      ? `<details class="ai-prose-collapse" open><summary>AI Analysis</summary><div class="ai-prose">${esc(result.prose)}</div></details>`
+      : '<div style="padding:20px;color:var(--text-muted)">No duplicates found.</div>';
+  }
+
+  const clusters = {};
+  for (const t of result.tasks) {
+    const cluster = (t.aiGroup || 'Ungrouped').trim();
+    if (!clusters[cluster]) clusters[cluster] = [];
+    clusters[cluster].push(t);
+  }
+
+  const DUP_ACTION_META = {
+    'Keep':    { icon: '\u2713', color: 'var(--green)',  bg: 'var(--green-dim)' },
+    'Merge':   { icon: 'm', color: 'var(--purple)', bg: 'var(--purple-dim)' },
+    'Discard': { icon: 'x', color: 'var(--red)',    bg: 'var(--red-dim)' },
+  };
+
+  const sortedClusters = Object.keys(clusters).sort((a, b) => clusters[b].length - clusters[a].length);
+
+  let html = `<div class="dup-summary"><span class="dup-summary-count">${sortedClusters.length}</span> similarity clusters found across <span class="dup-summary-count">${result.tasks.length}</span> tasks</div>`;
+
+  for (let ci = 0; ci < sortedClusters.length; ci++) {
+    const cluster = sortedClusters[ci];
+    const tasks = clusters[cluster];
+
+    html += `<div class="ai-results-section dup-cluster">
+      <div class="ai-section-header">
+        <span class="ai-section-icon" style="background:var(--purple-dim);color:var(--purple)">${ci + 1}</span>
+        <span class="ai-section-title">${esc(cluster)}</span>
+        <span class="ai-section-count">${tasks.length} tasks</span>
+      </div>
+      <table class="data-table"><thead><tr>
+        <th class="col-sel"></th>
+        <th class="sortable" data-sort="score">Score</th>
+        <th>ID</th>
+        <th>Action</th>
+        <th>Status</th>
+        <th>Description</th>
+        <th>Why</th>
+      </tr></thead><tbody>`;
+
+    for (const t of tasks) {
+      const meta = DUP_ACTION_META[t.aiAction] || { icon: '?', color: 'var(--text-muted)', bg: 'var(--bg)' };
+      const selected = isSelected(t.taskId);
+      html += `<tr data-id="${esc(t.taskId)}"${selected ? ' class="row-selected"' : ''}>`;
+      html += `<td class="col-sel"><button class="sel-btn${selected ? ' sel-active' : ''}" data-sel-id="${esc(t.taskId)}" title="${selected ? 'Remove from selection' : 'Add to selection'}"><i data-lucide="${selected ? 'check-circle' : 'circle'}" style="width:14px;height:14px"></i></button></td>`;
+      html += `<td class="col-score">${scoreBar(t.score || 0)}</td>`;
+      html += `<td class="col-id">${esc(t.taskId)}</td>`;
+      html += `<td><span class="badge-ai-action" style="background:${meta.bg};color:${meta.color}">${esc(t.aiAction || '--')}</span></td>`;
+      html += `<td>${priorityBadge(t.aiPriority === 'High' ? 'P0' : t.aiPriority === 'Mid' ? 'P1' : 'P2')}</td>`;
+      html += `<td class="col-desc">${esc(t.aiDescription)}</td>`;
+      html += `<td style="font-size:12px;color:var(--text-muted);max-width:300px">${esc(t.aiNotes || '--')}</td>`;
+      html += '</tr>';
+    }
+    html += '</tbody></table></div>';
+  }
+
+  if (result.prose) html += `<details class="ai-prose-collapse"><summary>AI Analysis</summary><div class="ai-prose">${esc(result.prose)}</div></details>`;
+  html += `<div class="table-footer">${result.tasks.length} tasks in ${sortedClusters.length} clusters</div>`;
+  return html;
+}
+
 // ── Spinner HTML ─────────────────────────────────────────────
 let timerInterval = null;
 
@@ -687,7 +769,7 @@ export function renderTaskList($el, category, state) {
 
 // ── AI View ──────────────────────────────────────────────────
 const AI_VIEW_CONFIG = {
-  analyze:    { endpoint: '/api/ai/analyze',    btnText: 'Analyze',        spinnerText: 'Asking Claude... this may take a minute', hasQuestion: true,  hasGroup: true,  hasCache: false },
+  analyze:    { endpoint: '/api/ai/analyze',    btnText: 'Analyze',        spinnerText: 'Asking AI... this may take a minute',    hasQuestion: true,  hasGroup: true,  hasCache: false },
   groom:      { endpoint: '/api/ai/groom',      btnText: 'Groom Triage',   spinnerText: 'Grooming triage tasks...',               hasQuestion: false, hasGroup: true,  hasCache: true },
   prioritize: { endpoint: '/api/ai/prioritize', btnText: 'Prioritize TODO',spinnerText: 'Analyzing TODO tasks...',                hasQuestion: false, hasGroup: true,  hasCache: true },
   duplicates: { endpoint: '/api/ai/duplicates', btnText: 'Find Duplicates',spinnerText: 'Scanning for duplicates...',             hasQuestion: false, hasGroup: false, hasCache: true },
@@ -728,7 +810,7 @@ export function renderAiView($el, view, state) {
     const scores = state.scores || {};
     for (const t of allAiTasks) t.score = scores[t.taskId] ?? t.score ?? 0;
     if (allAiTasks.length) resultsHtml += exportToolbar('ai-export');
-    resultsHtml += renderAiResultsHtml(job.result);
+    resultsHtml += view === 'duplicates' ? renderDuplicatesResultsHtml(job.result) : renderAiResultsHtml(job.result);
     resultsHtml += `<div style="text-align:center;padding:8px"><button type="button" class="btn btn-sm" id="ai-clear"><i data-lucide="rotate-ccw" style="width:12px;height:12px"></i> New query</button></div>`;
   }
 

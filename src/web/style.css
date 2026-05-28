@@ -892,6 +892,29 @@ body {
 
 .ai-prose-collapse summary:hover { color: var(--text); }
 
+.dup-summary {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.dup-summary-count {
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--purple);
+}
+
+.dup-cluster {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  background: var(--bg-surface);
+}
+
 .ai-prose {
   background: var(--bg-surface);
   padding: 16px;

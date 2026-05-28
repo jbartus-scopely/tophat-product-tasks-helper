@@ -15,6 +15,8 @@ import {
   filterTasks,
   getTask,
   isAiAvailable,
+  isClaudeAvailable,
+  isCodexAvailable,
   apiAnalyze,
   apiGroom,
   apiPrioritize,
@@ -187,18 +189,37 @@ export function startServer(port: number, filePath?: string): void {
 
   // ── API: AI ──────────────────────────────────────────────
   app.get('/api/ai/status', (c) => {
-    return c.json({ available: isAiAvailable() });
+    return c.json({
+      available: isAiAvailable(),
+      claude: isClaudeAvailable(),
+      codex: isCodexAvailable(),
+    });
   });
 
   app.get('/api/ai/models', (c) => {
-    return c.json([
+    const claude = isClaudeAvailable();
+    const codex = isCodexAvailable();
+    const models: Array<{ id: string; label: string; category: string; desc?: string; provider?: string }> = [
       { id: '', label: 'Default (CLI setting)', category: 'default' },
-      { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', category: 'fast', desc: 'Fastest, good for simple queries' },
-      { id: 'claude-sonnet-4-5-20250514', label: 'Sonnet 4.5', category: 'fast', desc: 'Fast and capable' },
-      { id: 'claude-sonnet-4-6-20250514', label: 'Sonnet 4.6', category: 'balanced', desc: 'Best balance of speed and quality' },
-      { id: 'claude-opus-4-6-20250414', label: 'Opus 4.6', category: 'thoughtful', desc: 'Deep analysis, slower' },
-      { id: 'claude-opus-4-7-20250506', label: 'Opus 4.7', category: 'thoughtful', desc: 'Most capable, slowest' },
-    ]);
+    ];
+    if (claude) {
+      models.push(
+        { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', category: 'fast', desc: 'Fastest, good for simple queries', provider: 'claude' },
+        { id: 'claude-sonnet-4-5-20250514', label: 'Sonnet 4.5', category: 'fast', desc: 'Fast and capable', provider: 'claude' },
+        { id: 'claude-sonnet-4-6-20250514', label: 'Sonnet 4.6', category: 'balanced', desc: 'Best balance of speed and quality', provider: 'claude' },
+        { id: 'claude-opus-4-6-20250414', label: 'Opus 4.6', category: 'thoughtful', desc: 'Deep analysis, slower', provider: 'claude' },
+        { id: 'claude-opus-4-7-20250506', label: 'Opus 4.7', category: 'thoughtful', desc: 'Most capable, slowest', provider: 'claude' },
+      );
+    }
+    if (codex) {
+      models.push(
+        { id: 'o3-mini', label: 'o3-mini', category: 'codex-fast', desc: 'Fast reasoning model', provider: 'codex' },
+        { id: 'o4-mini', label: 'o4-mini', category: 'codex-fast', desc: 'Fast and efficient', provider: 'codex' },
+        { id: 'gpt-4.1', label: 'GPT-4.1', category: 'codex-balanced', desc: 'Balanced capability', provider: 'codex' },
+        { id: 'o3', label: 'o3', category: 'codex-thoughtful', desc: 'Deep reasoning', provider: 'codex' },
+      );
+    }
+    return c.json(models);
   });
 
   app.post('/api/ai/analyze', async (c) => {

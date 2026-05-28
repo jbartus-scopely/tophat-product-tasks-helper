@@ -1,6 +1,6 @@
 import { parseBacklogFromString } from './parser.js';
 import { scoreTasks } from './scorer.js';
-import { checkAiAvailable, loadPrompt, tasksToCompactCsv, parseGroomResponse, runClaudeCollectRaw, } from './ai.js';
+import { checkAiAvailable, loadPrompt, tasksToCompactCsv, tasksToIdDescCsv, parseGroomResponse, runClaudeCollectRaw, } from './ai.js';
 import { getCached, getLastCached, saveCache } from './cache.js';
 const LIST_CATEGORIES = {
     triage: { statuses: ['TRIAGE'], title: 'TRIAGE' },
@@ -9,6 +9,9 @@ const LIST_CATEGORIES = {
     done: { statuses: ['Live', 'Ready for release'], title: 'DONE' },
     blocked: { statuses: ['BLOCK'], title: 'BLOCKED' },
 };
+export function getCategoryStatuses(category) {
+    return LIST_CATEGORIES[category]?.statuses || [];
+}
 export function loadBacklog(csvContent) {
     const backlog = parseBacklogFromString(csvContent);
     scoreTasks(backlog);
@@ -48,7 +51,15 @@ export function getGroups(backlog) {
     }
     return [...groups].sort();
 }
-export function filterTasks(backlog, category, group, limit = 50) {
+export function getPods(backlog) {
+    const pods = new Set();
+    for (const t of backlog.tasks) {
+        if (t.assignedPod)
+            pods.add(t.assignedPod);
+    }
+    return [...pods].sort();
+}
+export function filterTasks(backlog, category, group, limit = 50, priority, pod, status) {
     const cat = LIST_CATEGORIES[category];
     if (!cat) {
         return { tasks: [], title: 'Unknown Category', total: 0 };
@@ -57,12 +68,41 @@ export function filterTasks(backlog, category, group, limit = 50) {
     if (group) {
         tasks = tasks.filter((t) => t.group.toLowerCase() === group.toLowerCase());
     }
+    if (priority) {
+        tasks = tasks.filter((t) => t.priority === priority);
+    }
+    if (pod === '__empty__') {
+        tasks = tasks.filter((t) => !t.assignedPod);
+    }
+    else if (pod) {
+        tasks = tasks.filter((t) => t.assignedPod.toLowerCase() === pod.toLowerCase());
+    }
+    if (status) {
+        tasks = tasks.filter((t) => t.status === status);
+    }
     const total = tasks.length;
     tasks = tasks.slice(0, limit);
     return { tasks, title: cat.title, total };
 }
+export function getScoreMap(backlog) {
+    const map = {};
+    for (const t of backlog.tasks) {
+        if (t.id)
+            map[t.id] = t.score;
+    }
+    return map;
+}
 export function getTask(backlog, id) {
     return backlog.tasks.find((t) => t.id === id);
+}
+function enrichWithScores(result, backlog) {
+    if (!result?.tasks)
+        return result;
+    const scoreMap = new Map(backlog.tasks.map((t) => [t.id, t.score]));
+    for (const t of result.tasks) {
+        t.score = scoreMap.get(t.taskId) ?? 0;
+    }
+    return result;
 }
 export function isAiAvailable() {
     return checkAiAvailable();
@@ -83,7 +123,7 @@ export async function apiAnalyze(backlog, ask, group, model) {
     const raw = await runClaudeCollectRaw(prompt, model);
     if (!raw)
         return null;
-    return parseGroomResponse(raw);
+    return enrichWithScores(parseGroomResponse(raw), backlog);
 }
 export async function apiGroom(backlog, group, cache, model) {
     let triageTasks = backlog.tasks.filter((t) => t.id && t.description && t.status === 'TRIAGE');
@@ -113,7 +153,7 @@ export async function apiGroom(backlog, group, cache, model) {
             return null;
         saveCache('groom', prompt, raw);
     }
-    return parseGroomResponse(raw);
+    return enrichWithScores(parseGroomResponse(raw), backlog);
 }
 export async function apiPrioritize(backlog, group, cache, model) {
     let todoTasks = backlog.tasks.filter((t) => t.id && t.description && t.status === 'TODO');
@@ -143,11 +183,11 @@ export async function apiPrioritize(backlog, group, cache, model) {
             return null;
         saveCache('prioritize', prompt, raw);
     }
-    return parseGroomResponse(raw);
+    return enrichWithScores(parseGroomResponse(raw), backlog);
 }
 export async function apiFindDuplicates(backlog, cache, model) {
     const tasks = backlog.tasks.filter((t) => t.id && t.description);
-    const csv = tasksToCompactCsv(tasks);
+    const csv = tasksToIdDescCsv(tasks);
     const prompt = loadPrompt('duplicates', {
         taskCount: String(tasks.length),
         csv,
@@ -163,6 +203,6 @@ export async function apiFindDuplicates(backlog, cache, model) {
             return null;
         saveCache('duplicates', prompt, raw);
     }
-    return { text: raw };
+    return enrichWithScores(parseGroomResponse(raw), backlog);
 }
 //# sourceMappingURL=api.js.map

@@ -1,6 +1,7 @@
 import type { Task, BacklogData, GroomResult } from './types.js';
 export declare function loadPrompt(name: string, vars?: Record<string, string>): string;
 export declare function tasksToCompactCsv(tasks: Task[]): string;
+export declare function tasksToIdDescCsv(tasks: Task[]): string;
 export declare function checkAiAvailable(): boolean;
 export declare function printAiUnavailable(): void;
 export declare function runClaudeCollectRaw(prompt: string, model?: string): Promise<string | null>;

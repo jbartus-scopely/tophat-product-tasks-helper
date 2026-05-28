@@ -54,37 +54,81 @@ export function tasksToCompactCsv(tasks: Task[]): string {
   return [header, ...rows].join('\n');
 }
 
-function findClaudeCli(): string | null {
+export function tasksToIdDescCsv(tasks: Task[]): string {
+  const header = 'ID,Description';
+  const rows = tasks.map((t) => {
+    const desc = t.description
+      .replace(/\n+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 150)
+      .replace(/,/g, ';')
+      .replace(/"/g, "'");
+    return `${t.id},${desc}`;
+  });
+  return [header, ...rows].join('\n');
+}
+
+function findCli(name: string): string | null {
   try {
-    const path = execFileSync('which', ['claude'], { encoding: 'utf-8' }).trim();
+    const path = execFileSync('which', [name], { encoding: 'utf-8' }).trim();
     return path || null;
   } catch {
     return null;
   }
 }
 
+function findClaudeCli(): string | null {
+  return findCli('claude');
+}
+
+function findCodexCli(): string | null {
+  return findCli('codex');
+}
+
+export type AiProvider = 'claude' | 'codex';
+
+const CODEX_MODEL_PREFIXES = ['o1', 'o3', 'o4', 'gpt-', 'codex-'];
+
+export function getProviderForModel(model?: string): AiProvider {
+  if (!model) return 'claude';
+  return CODEX_MODEL_PREFIXES.some((p) => model.startsWith(p)) ? 'codex' : 'claude';
+}
+
+function findCliForProvider(provider: AiProvider): string | null {
+  return provider === 'codex' ? findCodexCli() : findClaudeCli();
+}
+
 export function checkAiAvailable(): boolean {
+  return findClaudeCli() !== null || findCodexCli() !== null;
+}
+
+export function checkClaudeAvailable(): boolean {
   return findClaudeCli() !== null;
+}
+
+export function checkCodexAvailable(): boolean {
+  return findCodexCli() !== null;
 }
 
 export function printAiUnavailable(): void {
   console.log('');
-  console.log(chalk.yellow('  AI features require the Claude CLI to be installed.'));
-  console.log(chalk.dim('  Install it from: https://claude.ai/claude-code'));
+  console.log(chalk.yellow('  AI features require the Claude CLI or Codex CLI to be installed.'));
+  console.log(chalk.dim('  Claude: https://claude.ai/claude-code'));
+  console.log(chalk.dim('  Codex:  https://openai.com/index/codex-cli'));
   console.log('');
 }
 
-function spawnClaude(prompt: string, modelArgs: string[]): Promise<string | null> {
-  const claudePath = findClaudeCli();
-  if (!claudePath) return Promise.resolve(null);
+function spawnProvider(provider: AiProvider, prompt: string, modelArgs: string[]): Promise<string | null> {
+  const cliPath = findCliForProvider(provider);
+  if (!cliPath) return Promise.resolve(null);
+
+  const args = provider === 'codex'
+    ? ['--quiet', '--full-auto', ...modelArgs, prompt]
+    : ['--print', ...modelArgs, '--system-prompt', getSystemPrompt(), prompt];
 
   return new Promise<string | null>((resolve) => {
-    const child = spawn(claudePath, [
-      '--print',
-      ...modelArgs,
-      '--system-prompt', getSystemPrompt(),
-      prompt,
-    ], {
+    const child = spawn(cliPath, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env },
     });
@@ -96,39 +140,45 @@ function spawnClaude(prompt: string, modelArgs: string[]): Promise<string | null
   });
 }
 
+function spawnClaude(prompt: string, modelArgs: string[]): Promise<string | null> {
+  return spawnProvider('claude', prompt, modelArgs);
+}
+
 export async function runClaudeCollectRaw(prompt: string, model?: string): Promise<string | null> {
+  const provider = getProviderForModel(model);
   const modelArgs = model ? ['--model', model] : getModelArgs();
-  const result = await spawnClaude(prompt, modelArgs);
+  const result = await spawnProvider(provider, prompt, modelArgs);
   if (result !== null) return result;
 
-  // If model was explicitly set and failed, retry without model override
   if (model) {
     console.log(`  !!  Model "${model}" failed, retrying with default...`);
-    return spawnClaude(prompt, getModelArgs());
+    return spawnProvider('claude', prompt, getModelArgs());
   }
   return null;
 }
 
 async function runClaudeCollect(prompt: string): Promise<string | null> {
-  const claudePath = findClaudeCli();
-  if (!claudePath) {
+  const envModel = process.env.PTH_MODEL;
+  const provider = getProviderForModel(envModel);
+  const cliPath = findCliForProvider(provider);
+  if (!cliPath) {
     printAiUnavailable();
     return null;
   }
 
+  const providerLabel = provider === 'codex' ? 'Codex' : 'Claude';
   const spinner = ora({
-    text: chalk.dim('Asking Claude...'),
+    text: chalk.dim(`Asking ${providerLabel}...`),
     spinner: 'dots',
     color: 'cyan',
   }).start();
 
+  const args = provider === 'codex'
+    ? ['--quiet', '--full-auto', ...getModelArgs(), prompt]
+    : ['--print', ...getModelArgs(), '--system-prompt', getSystemPrompt(), prompt];
+
   return new Promise<string | null>((resolve) => {
-    const child = spawn(claudePath, [
-      '--print',
-      ...getModelArgs(),
-      '--system-prompt', getSystemPrompt(),
-      prompt,
-    ], {
+    const child = spawn(cliPath, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env },
     });
@@ -168,27 +218,29 @@ async function runClaudeCollect(prompt: string): Promise<string | null> {
 }
 
 async function runClaude(prompt: string, title: string): Promise<void> {
-  const claudePath = findClaudeCli();
-  if (!claudePath) {
+  const envModel = process.env.PTH_MODEL;
+  const provider = getProviderForModel(envModel);
+  const cliPath = findCliForProvider(provider);
+  if (!cliPath) {
     printAiUnavailable();
     return;
   }
 
+  const providerLabel = provider === 'codex' ? 'Codex' : 'Claude';
   const spinner = ora({
-    text: chalk.dim('Asking Claude...'),
+    text: chalk.dim(`Asking ${providerLabel}...`),
     spinner: 'dots',
     color: 'cyan',
   }).start();
 
   const width = 70;
 
+  const args = provider === 'codex'
+    ? ['--quiet', '--full-auto', ...getModelArgs(), prompt]
+    : ['--print', ...getModelArgs(), '--system-prompt', getSystemPrompt(), prompt];
+
   return new Promise<void>((resolve) => {
-    const child = spawn(claudePath, [
-      '--print',
-      ...getModelArgs(),
-      '--system-prompt', getSystemPrompt(),
-      prompt,
-    ], {
+    const child = spawn(cliPath, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env },
     });

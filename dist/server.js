@@ -3,7 +3,7 @@ import { serve } from '@hono/node-server';
 import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname, extname } from 'path';
 import { fileURLToPath } from 'url';
-import { loadBacklog, computeStats, getGroups, filterTasks, getTask, isAiAvailable, apiAnalyze, apiGroom, apiPrioritize, apiFindDuplicates, } from './api.js';
+import { loadBacklog, computeStats, getGroups, getPods, getCategoryStatuses, getScoreMap, filterTasks, getTask, isAiAvailable, apiAnalyze, apiGroom, apiPrioritize, apiFindDuplicates, } from './api.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const WEB_DIR = resolve(__dirname, '..', 'src', 'web');
@@ -111,12 +111,34 @@ export function startServer(port, filePath) {
             return c.json({ error: e.message }, 400);
         }
     });
+    app.get('/api/pods', (c) => {
+        try {
+            return c.json(getPods(requireBacklog()));
+        }
+        catch (e) {
+            return c.json({ error: e.message }, 400);
+        }
+    });
+    app.get('/api/scores', (c) => {
+        try {
+            return c.json(getScoreMap(requireBacklog()));
+        }
+        catch (e) {
+            return c.json({ error: e.message }, 400);
+        }
+    });
+    app.get('/api/categories/:name/statuses', (c) => {
+        return c.json(getCategoryStatuses(c.req.param('name')));
+    });
     app.get('/api/tasks', (c) => {
         try {
             const category = c.req.query('category') || 'backlog';
             const group = c.req.query('group') || undefined;
             const limit = parseInt(c.req.query('limit') || '50');
-            return c.json(filterTasks(requireBacklog(), category, group, limit));
+            const priority = c.req.query('priority') || undefined;
+            const pod = c.req.query('pod') || undefined;
+            const status = c.req.query('status') || undefined;
+            return c.json(filterTasks(requireBacklog(), category, group, limit, priority, pod, status));
         }
         catch (e) {
             return c.json({ error: e.message }, 400);

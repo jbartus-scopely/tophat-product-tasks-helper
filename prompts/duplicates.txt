@@ -1,34 +1,29 @@
-Here is the product task backlog ({{taskCount}} tasks):
+Here are {{taskCount}} tasks (ID and Description only):
 
 ```csv
 {{csv}}
 ```
 
-Known duplicate IDs from the data: {{knownDuplicates}}
+Known duplicate IDs: {{knownDuplicates}}
 
-Please find:
-1. **Exact duplicates**: Tasks with the same ID that appear multiple times (list conflicts in metadata).
-2. **Semantic duplicates**: Different tasks that describe the same or overlapping work (different IDs but similar intent).
-3. **Related clusters**: Tasks that are distinct but could be grouped into a single initiative or batch.
+Find groups of tasks whose descriptions refer to the same topic, overlap significantly, or where one is part of the other. Ignore status — focus only on description similarity.
 
-Your response MUST include a CSV block in this exact format:
+Assign each cluster a short name (e.g. "Board roll timing", "Album reward bugs").
+
+Output a CSV block:
 
 ```csv
 Task ID,AI Description,AI Priority,AI Action,AI Notes,AI Group
-<ID>,<original task description>,<High|Mid|Low>,<action>,<recommendation>,<group>
+<ID>,<original description>,<High|Mid|Low>,<action>,<explanation>,<cluster name>
 ```
 
-Rules for the CSV:
-- Include every task that is part of a duplicate pair; semantic duplicate; or related cluster.
-- AI Description: use the original task description from the backlog.
-- AI Priority: High, Mid, or Low (priority of resolving this duplicate).
-- AI Action: MUST be one of: Merge, Discard, Keep Triage, Hold.
-  - Merge — should be merged with another task (reference target ID in AI Notes).
-  - Discard — this is the weaker duplicate; remove it.
-  - Keep Triage — keep both but flag for review.
-  - Hold — related but distinct; defer grouping decision.
-- AI Notes: explain what it duplicates or relates to. Reference task IDs. Use semicolons not commas.
-- AI Group: the group this task belongs to. MUST be one of: Timings, UI/UX, MRG, Album, SD/BH, Social, Cosmetics, Rolling, QW, Bug, Tournaments, Bots, Delight, FTUE, Networth, Other.
-- Do NOT use commas inside fields; use semicolons instead.
+Rules:
+- Only include tasks in a cluster (2+ tasks on the same topic). Skip unique tasks.
+- AI Description: copy the original description as-is.
+- AI Priority: High = best version; Mid = partial overlap; Low = weaker duplicate.
+- AI Action: Keep, Merge, or Discard.
+- AI Notes: which task ID it overlaps with and why. Use semicolons not commas.
+- AI Group: cluster name. Same cluster = same exact value.
+- No commas inside fields; use semicolons.
 
-After the CSV block, provide a summary grouped by duplicate clusters explaining the relationships.
+After the CSV, one sentence per cluster summarizing the overlap.
