@@ -1,4 +1,16 @@
-import { api, apiPost, onAiJobChange, getAiJob, getRunningAiView, loadModels, onSelectionChange, getSelectionCount, addJiraQueryToHistory } from './shared.js';
+import {
+  api,
+  onAiJobChange,
+  getAiJob,
+  getRunningAiView,
+  loadModels,
+  onSelectionChange,
+  getSelectionCount,
+  getJiraDashboardVersions,
+  saveJiraDashboardVersions,
+  getJiraAllDataFilters,
+  saveJiraAllDataFilters,
+} from './shared.js';
 import { renderDashboard, renderTaskList, renderAiView, renderSelectionView, renderJiraView } from './components.js';
 
 let state = {
@@ -16,25 +28,22 @@ let state = {
     loaded: false,
     startedAt: null,
     lastLoadedAt: null,
+    openMultiDropdown: null,
+    dashboard: {
+      activeView: 'versions',
+      selectedVersions: getJiraDashboardVersions(),
+      search: '',
+      expandedVersions: {},
+    },
     allData: {
-      mode: 'saved',
-      selectedSectionId: '__all__',
       filters: {
-        status: '',
-        priority: '',
-        fixVersion: '',
-        pod: '',
+        ...getJiraAllDataFilters(),
         search: '',
       },
       sort: {
         field: 'key',
         dir: 'asc',
       },
-      adHocJql: '',
-      adHocStatus: 'idle',
-      adHocIssues: [],
-      adHocWarnings: [],
-      adHocError: null,
     },
   },
 };
@@ -62,6 +71,7 @@ const VIEW_TITLES = {
 };
 
 const AI_VIEWS = ['analyze', 'groom', 'prioritize', 'duplicates'];
+const JIRA_FOCUSABLE_INPUT_IDS = new Set(['jira-dashboard-search', 'jira-filter-search']);
 
 // ── Init ─────────────────────────────────────────────────────
 async function init() {
@@ -220,16 +230,68 @@ function route() {
 
 window.addEventListener('hashchange', route);
 
-function renderJira() {
+function getJiraFocusSnapshot() {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLInputElement) || !JIRA_FOCUSABLE_INPUT_IDS.has(active.id)) return null;
+  return {
+    id: active.id,
+    start: active.selectionStart,
+    end: active.selectionEnd,
+  };
+}
+
+function restoreJiraFocus(snapshot) {
+  if (!snapshot) return;
+  const input = document.getElementById(snapshot.id);
+  if (!(input instanceof HTMLInputElement)) return;
+  input.focus();
+  if (typeof snapshot.start === 'number' && typeof snapshot.end === 'number') {
+    try {
+      input.setSelectionRange(snapshot.start, snapshot.end);
+    } catch {
+      // Some input types do not support selection ranges.
+    }
+  }
+}
+
+function getJiraDropdownScrollSnapshot() {
+  const openId = state.jira.openMultiDropdown;
+  if (!openId) return null;
+  const menu = [...document.querySelectorAll('[data-jira-multi-menu]')]
+    .find(el => el.dataset.jiraMultiMenu === openId);
+  if (!(menu instanceof HTMLElement)) return null;
+  return {
+    id: openId,
+    scrollTop: menu.scrollTop,
+  };
+}
+
+function restoreJiraDropdownScroll(snapshot) {
+  if (!snapshot) return;
+  const menu = [...document.querySelectorAll('[data-jira-multi-menu]')]
+    .find(el => el.dataset.jiraMultiMenu === snapshot.id);
+  if (!(menu instanceof HTMLElement)) return;
+  menu.scrollTop = snapshot.scrollTop;
+}
+
+function renderJira(options = {}) {
+  const focusSnapshot = options.preserveFocus ? getJiraFocusSnapshot() : null;
+  const dropdownScrollSnapshot = options.preserveDropdownScroll ? getJiraDropdownScrollSnapshot() : null;
   renderJiraView($view, state, {
     onRefresh: refreshJira,
     onTabChange: setJiraTab,
-    onSectionChange: setJiraSection,
+    onDashboardTabChange: setJiraDashboardTab,
+    onDashboardVersionChange: setJiraDashboardVersions,
+    onDashboardSearchChange: setJiraDashboardSearch,
+    onVersionGroupToggle: toggleJiraVersionGroup,
+    onVersionGroupsSet: setJiraVersionGroups,
+    onMultiDropdownToggle: toggleJiraMultiDropdown,
+    onMultiDropdownClose: closeJiraMultiDropdown,
     onFilterChange: setJiraFilter,
     onSortChange: setJiraSort,
-    onAdHocSearch: runJiraAdHocSearch,
-    onUseSavedData: useSavedJiraData,
   });
+  restoreJiraFocus(focusSnapshot);
+  restoreJiraDropdownScroll(dropdownScrollSnapshot);
 }
 
 function setJiraTab(tab) {
@@ -238,25 +300,96 @@ function setJiraTab(tab) {
   if (window.lucide) lucide.createIcons();
 }
 
-function setJiraSection(sectionId) {
-  state.jira.allData = {
-    ...state.jira.allData,
-    mode: 'saved',
-    selectedSectionId: sectionId,
+function setJiraDashboardTab(tab) {
+  state.jira.dashboard = {
+    ...state.jira.dashboard,
+    activeView: tab,
   };
   renderJira();
   if (window.lucide) lucide.createIcons();
 }
 
-function setJiraFilter(name, value) {
-  state.jira.allData = {
-    ...state.jira.allData,
-    filters: {
-      ...state.jira.allData.filters,
-      [name]: value,
-    },
+function setJiraDashboardVersions(versions) {
+  const selectedVersions = Array.isArray(versions) ? versions : [];
+  state.jira.dashboard = {
+    ...state.jira.dashboard,
+    selectedVersions,
+  };
+  state.jira.openMultiDropdown = 'jira-dashboard-version-filter';
+  saveJiraDashboardVersions(selectedVersions);
+  renderJira({ preserveDropdownScroll: true });
+  if (window.lucide) lucide.createIcons();
+}
+
+function setJiraDashboardSearch(search) {
+  state.jira.dashboard = {
+    ...state.jira.dashboard,
+    search,
+  };
+  renderJira({ preserveFocus: true });
+  if (window.lucide) lucide.createIcons();
+}
+
+function toggleJiraVersionGroup(version) {
+  const expanded = state.jira.dashboard.expandedVersions?.[version] !== false;
+  const expandedVersions = {
+    ...state.jira.dashboard.expandedVersions,
+    [version]: !expanded,
+  };
+  state.jira.dashboard = {
+    ...state.jira.dashboard,
+    expandedVersions,
   };
   renderJira();
+  if (window.lucide) lucide.createIcons();
+}
+
+function setJiraVersionGroups(versions, expanded) {
+  const expandedVersions = {
+    ...state.jira.dashboard.expandedVersions,
+  };
+  for (const version of versions) {
+    expandedVersions[version] = expanded;
+  }
+  state.jira.dashboard = {
+    ...state.jira.dashboard,
+    expandedVersions,
+  };
+  renderJira();
+  if (window.lucide) lucide.createIcons();
+}
+
+function toggleJiraMultiDropdown(id) {
+  state.jira.openMultiDropdown = state.jira.openMultiDropdown === id ? null : id;
+  renderJira();
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeJiraMultiDropdown() {
+  if (!state.jira.openMultiDropdown) return;
+  state.jira.openMultiDropdown = null;
+  renderJira();
+  if (window.lucide) lucide.createIcons();
+}
+
+function setJiraFilter(name, value) {
+  const dropdownByFilter = {
+    status: 'jira-filter-status',
+    priority: 'jira-filter-priority',
+    fixVersion: 'jira-filter-fix-version',
+    pod: 'jira-filter-pod',
+  };
+  const filters = {
+    ...state.jira.allData.filters,
+    [name]: value,
+  };
+  state.jira.allData = {
+    ...state.jira.allData,
+    filters,
+  };
+  state.jira.openMultiDropdown = dropdownByFilter[name] || state.jira.openMultiDropdown;
+  saveJiraAllDataFilters(filters);
+  renderJira({ preserveFocus: name === 'search', preserveDropdownScroll: name !== 'search' });
   if (window.lucide) lucide.createIcons();
 }
 
@@ -271,27 +404,7 @@ function setJiraSort(field) {
   if (window.lucide) lucide.createIcons();
 }
 
-function useSavedJiraData() {
-  state.jira.allData = {
-    ...state.jira.allData,
-    mode: 'saved',
-    adHocStatus: 'idle',
-    adHocError: null,
-  };
-  renderJira();
-  if (window.lucide) lucide.createIcons();
-}
-
 function refreshJira() {
-  if (
-    state.jira.activeTab === 'all-data' &&
-    state.jira.allData.mode === 'ad-hoc' &&
-    state.jira.allData.adHocJql
-  ) {
-    runJiraAdHocSearch(state.jira.allData.adHocJql);
-    return;
-  }
-
   loadJiraSections();
 }
 
@@ -328,6 +441,10 @@ async function loadJiraSections() {
         loaded: true,
         startedAt: null,
         lastLoadedAt: Date.now(),
+        dashboard: {
+          ...state.jira.dashboard,
+          expandedVersions: {},
+        },
       };
     }
   } catch (e) {
@@ -342,54 +459,6 @@ async function loadJiraSections() {
   }
 
   if (getView() === 'jira') renderJira();
-}
-
-async function runJiraAdHocSearch(jql) {
-  const trimmed = jql.trim();
-  if (!trimmed || state.jira.allData.adHocStatus === 'loading') return;
-
-  state.jira.allData = {
-    ...state.jira.allData,
-    mode: 'ad-hoc',
-    adHocJql: trimmed,
-    adHocStatus: 'loading',
-    adHocIssues: [],
-    adHocWarnings: [],
-    adHocError: null,
-  };
-  renderJira();
-
-  try {
-    const result = await apiPost('/api/jira/search', { jql: trimmed });
-    if (result.error) {
-      state.jira.allData = {
-        ...state.jira.allData,
-        adHocStatus: 'error',
-        adHocIssues: [],
-        adHocWarnings: [],
-        adHocError: result.error,
-      };
-    } else {
-      addJiraQueryToHistory(trimmed);
-      state.jira.allData = {
-        ...state.jira.allData,
-        adHocStatus: 'done',
-        adHocIssues: result.issues || [],
-        adHocWarnings: result.warnings || [],
-        adHocError: null,
-      };
-    }
-  } catch (e) {
-    state.jira.allData = {
-      ...state.jira.allData,
-      adHocStatus: 'error',
-      adHocIssues: [],
-      adHocWarnings: [],
-      adHocError: e.message,
-    };
-  }
-
-  renderJira();
 }
 
 function showEmptyState() {

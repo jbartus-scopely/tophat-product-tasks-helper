@@ -3,7 +3,7 @@ import { discoverJiraPodField } from './jiraFields.js';
 const JIRA_SEARCH_PATH = '/rest/api/3/search/jql';
 const SEARCH_PAGE_SIZE = 100;
 const SEARCH_ISSUE_CAP = 500;
-const BASE_SEARCH_FIELDS = ['summary', 'status', 'priority', 'fixVersions', 'updated'];
+const BASE_SEARCH_FIELDS = ['summary', 'issuetype', 'status', 'priority', 'fixVersions', 'updated'];
 export async function searchJiraIssues(params, options = {}) {
     const credentialsResult = loadJiraCredentials(options.env);
     if (!credentialsResult.ok)
@@ -67,6 +67,7 @@ function normalizeJiraIssue(value, params, baseUrl, podFieldId) {
         key,
         url: key ? `${baseUrl}/browse/${encodeURIComponent(key)}` : '',
         summary: readString(fields.summary),
+        issueType: readNamedValue(fields.issuetype),
         status: readNamedValue(fields.status),
         priority: readNamedValue(fields.priority),
         fixVersions: readFixVersions(fields.fixVersions),

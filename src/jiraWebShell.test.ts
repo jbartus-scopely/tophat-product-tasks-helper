@@ -38,38 +38,81 @@ test('Jira shell has tabs, refresh, loading, and error states', () => {
   assert.match(components, /errorHtml/);
 });
 
-test('Jira dashboard renders saved sections and predefined dashboard views', () => {
+test('Jira dashboard renders sub-tabs, version filters, and collapsible groups', () => {
   const components = readProjectFile('src/web/components.js');
+  const app = readProjectFile('src/web/app.js');
+  const shared = readProjectFile('src/web/shared.js');
 
-  assert.match(components, /jiraSavedSectionsHtml/);
-  assert.match(components, /Coming by version/);
+  assert.doesNotMatch(components, /jiraSavedSectionsHtml/);
+  assert.match(components, /JIRA_DASHBOARD_TABS/);
+  assert.match(components, /data-jira-dashboard-tab/);
+  assert.match(components, /jira-dashboard-version-filter/);
+  assert.match(components, /versionBugFixWidgetHtml/);
+  assert.match(components, /Bugs fixed by version/);
+  assert.match(components, /isFixedJiraStatus/);
+  assert.match(components, /jira-version-bug-tooltip/);
+  assert.match(components, /wireJiraVersionBugTooltips/);
+  assert.match(components, /data-jira-version-toggle/);
+  assert.match(components, /data-jira-version-bulk/);
+  assert.match(components, /expandedVersions\?\.\[version\] !== false/);
+  assert.match(app, /expandedVersions\?\.\[version\] !== false/);
+  assert.match(app, /getJiraDropdownScrollSnapshot/);
+  assert.match(app, /restoreJiraDropdownScroll/);
+  assert.match(app, /preserveDropdownScroll: true/);
+  assert.match(app, /onVersionGroupsSet/);
+  assert.match(components, /NO_FIX_VERSION_LABEL/);
   assert.match(components, /Not started by priority/);
   assert.match(components, /status === 'open' \|\| status === 'to do'/);
-  assert.match(components, /No fix version/);
+  assert.match(app, /getJiraDashboardVersions/);
+  assert.match(app, /saveJiraDashboardVersions/);
+  assert.match(shared, /pth_jira_dashboard_versions/);
 });
 
-test('Jira All Data view provides saved-section selection, filters, and sortable columns', () => {
+test('Jira All Data view provides combined saved data, persisted multi-select filters, and sortable columns', () => {
   const components = readProjectFile('src/web/components.js');
+  const app = readProjectFile('src/web/app.js');
+  const shared = readProjectFile('src/web/shared.js');
 
-  assert.match(components, /id="jira-section-select"/);
+  assert.doesNotMatch(components, /id="jira-section-select"/);
+  assert.doesNotMatch(components, /sectionOptionsHtml/);
+  assert.doesNotMatch(components, /jiraSectionsSummaryTable/);
+  assert.match(components, /return allSavedIssues\(jira\.sections \|\| \[\]\)/);
   assert.match(components, /jira-filter-status/);
   assert.match(components, /jira-filter-priority/);
+  assert.match(components, /critical: 0/);
+  assert.match(components, /major: 1/);
+  assert.match(components, /minor: 3/);
+  assert.match(components, /unprioritized: 5/);
+  assert.match(components, /jiraPriorityRank/);
+  assert.match(components, /aUnprioritized/);
+  assert.match(components, /return av\.localeCompare\(bv\)/);
   assert.match(components, /jira-filter-fix-version/);
   assert.match(components, /jira-filter-pod/);
+  assert.match(components, /data-jira-multi-dropdown/);
+  assert.match(components, /data-jira-multi-input/);
+  assert.match(components, /type="checkbox"/);
+  assert.match(components, /checkedMultiValues/);
   assert.match(components, /jira-filter-search/);
   assert.match(components, /data-jira-sort/);
   assert.match(components, /target="_blank"/);
+  assert.match(app, /JIRA_FOCUSABLE_INPUT_IDS/);
+  assert.match(app, /preserveFocus: name === 'search'/);
+  assert.match(app, /getJiraAllDataFilters/);
+  assert.match(app, /saveJiraAllDataFilters/);
+  assert.match(shared, /pth_jira_all_data_filters/);
 });
 
-test('Jira ad hoc JQL uses server API and Jira-specific localStorage history', () => {
+test('Jira All Data view omits ad hoc JQL controls', () => {
   const app = readProjectFile('src/web/app.js');
   const shared = readProjectFile('src/web/shared.js');
   const components = readProjectFile('src/web/components.js');
 
-  assert.match(app, /apiPost\('\/api\/jira\/search'/);
-  assert.match(app, /addJiraQueryToHistory/);
-  assert.match(app, /adHocIssues: \[\]/);
-  assert.match(shared, /pth_jira_jql_history/);
-  assert.match(components, /id="jira-adhoc-form"/);
-  assert.match(components, /getJiraQueryHistory/);
+  assert.doesNotMatch(app, /apiPost\('\/api\/jira\/search'/);
+  assert.doesNotMatch(app, /addJiraQueryToHistory/);
+  assert.doesNotMatch(app, /adHocIssues/);
+  assert.doesNotMatch(shared, /pth_jira_jql_history/);
+  assert.doesNotMatch(components, /id="jira-adhoc-form"/);
+  assert.doesNotMatch(components, /jira-jql-history-dropdown/);
+  assert.doesNotMatch(components, /wireJiraJqlHistory/);
+  assert.doesNotMatch(components, /getJiraQueryHistory/);
 });

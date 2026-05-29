@@ -16,7 +16,8 @@ export async function apiPost(path, body, signal) {
 
 // ── Query History (localStorage) ─────────────────────────────
 const HISTORY_KEY = 'pth_query_history';
-export const JIRA_HISTORY_KEY = 'pth_jira_jql_history';
+const JIRA_DASHBOARD_VERSIONS_KEY = 'pth_jira_dashboard_versions';
+const JIRA_ALL_DATA_FILTERS_KEY = 'pth_jira_all_data_filters';
 const MAX_HISTORY = 30;
 
 function loadHistory() {
@@ -24,13 +25,44 @@ function loadHistory() {
   catch { return []; }
 }
 
-function loadStorageHistory(key) {
-  try { return JSON.parse(localStorage.getItem(key)) || []; }
-  catch { return []; }
-}
-
 function saveStorageHistory(key, entries) {
   localStorage.setItem(key, JSON.stringify(entries.slice(0, MAX_HISTORY)));
+}
+
+function loadStorageObject(key, fallback) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key));
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function loadStorageStringArray(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key));
+    return normalizeStringArray(value);
+  } catch {
+    return [];
+  }
+}
+
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean))];
+}
+
+function saveStorageStringArray(key, values) {
+  localStorage.setItem(key, JSON.stringify(normalizeStringArray(values)));
+}
+
+function normalizeJiraAllDataFilters(value) {
+  return {
+    status: normalizeStringArray(value?.status),
+    priority: normalizeStringArray(value?.priority),
+    fixVersion: normalizeStringArray(value?.fixVersion),
+    pod: normalizeStringArray(value?.pod),
+  };
 }
 
 function saveHistory(entries) {
@@ -63,19 +95,20 @@ export function toggleStarQuery(query) {
 export function removeQueryFromHistory(query) { saveHistory(loadHistory().filter(e => e.query !== query)); }
 export function clearQueryHistory() { localStorage.removeItem(HISTORY_KEY); }
 
-export function getJiraQueryHistory() {
-  return loadStorageHistory(JIRA_HISTORY_KEY);
+export function getJiraDashboardVersions() {
+  return loadStorageStringArray(JIRA_DASHBOARD_VERSIONS_KEY);
 }
 
-export function addJiraQueryToHistory(query) {
-  const trimmed = query.trim();
-  if (!trimmed) return;
-  const entries = getJiraQueryHistory();
-  const existing = entries.findIndex(e => e.query === trimmed);
-  if (existing !== -1) entries[existing].usedAt = Date.now();
-  else entries.unshift({ query: trimmed, usedAt: Date.now() });
-  entries.sort((a, b) => b.usedAt - a.usedAt);
-  saveStorageHistory(JIRA_HISTORY_KEY, entries);
+export function saveJiraDashboardVersions(values) {
+  saveStorageStringArray(JIRA_DASHBOARD_VERSIONS_KEY, values);
+}
+
+export function getJiraAllDataFilters() {
+  return normalizeJiraAllDataFilters(loadStorageObject(JIRA_ALL_DATA_FILTERS_KEY, {}));
+}
+
+export function saveJiraAllDataFilters(filters) {
+  localStorage.setItem(JIRA_ALL_DATA_FILTERS_KEY, JSON.stringify(normalizeJiraAllDataFilters(filters)));
 }
 
 // ── AI Models ────────────────────────────────────────────────

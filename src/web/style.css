@@ -394,10 +394,7 @@ body {
 }
 
 .table-controls select,
-.table-controls input,
-.jira-adhoc-form input,
-.jira-adhoc-form select,
-.jira-section-picker select {
+.table-controls input {
   background: var(--bg-surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -1035,9 +1032,54 @@ body {
   font-size: 11px;
 }
 
-.jira-summary-row { margin-bottom: 16px; }
+.jira-summary-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr);
+  align-items: stretch;
+  margin-bottom: 16px;
+}
 
-.jira-section-table tbody tr { cursor: default; }
+.jira-summary-row .summary-card,
+.jira-summary-row .jira-version-widget {
+  min-width: 0;
+}
+
+.jira-dashboard-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.jira-dashboard-tab {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.jira-dashboard-tab:hover { color: var(--text); background: var(--bg-hover); }
+.jira-dashboard-tab.active { color: var(--accent); background: var(--accent-dim); }
+
+.jira-dashboard-controls {
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.jira-version-bulk-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1px;
+}
 
 .jira-dashboard-stack {
   display: flex;
@@ -1072,8 +1114,191 @@ body {
   font-size: 11px;
 }
 
+.jira-version-widget {
+  margin-bottom: 0;
+  overflow: visible;
+}
+
+.jira-version-widget .jira-section-header {
+  margin-bottom: 6px;
+}
+
+.jira-version-bug-chart {
+  display: grid;
+  grid-auto-columns: 56px;
+  grid-auto-flow: column;
+  align-items: end;
+  gap: 8px;
+  min-height: 88px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 2px 4px;
+  scrollbar-width: thin;
+}
+
+.jira-version-bug-column {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 44px auto;
+  justify-items: center;
+  gap: 4px;
+  min-width: 0;
+  outline: none;
+}
+
+.jira-version-bug-column:focus-visible .jira-version-bug-bar,
+.jira-version-bug-column:hover .jira-version-bug-bar {
+  background: linear-gradient(180deg, var(--accent), var(--green));
+  box-shadow: 0 0 0 1px #58a6ff55, 0 8px 20px #00000033;
+}
+
+.jira-version-bug-count {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.jira-version-bug-bar-track {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
+}
+
+.jira-version-bug-bar {
+  width: min(40px, 78%);
+  min-height: 4px;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, #58a6ff, #3fb950);
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+.jira-version-bug-label {
+  width: 100%;
+  min-height: 16px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jira-version-bug-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  z-index: 30;
+  width: max-content;
+  min-width: 280px;
+  max-width: min(520px, calc(100vw - 48px));
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  color: var(--text);
+  opacity: 0;
+  pointer-events: none;
+  text-align: left;
+  transform: translate(-50%, 4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.jira-floating-tooltip {
+  position: fixed;
+  bottom: auto;
+  opacity: 1;
+  transform: none;
+  z-index: 1000;
+}
+
+.jira-version-bug-column:hover .jira-version-bug-tooltip,
+.jira-version-bug-column:focus-visible .jira-version-bug-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.jira-version-bug-tooltip-title {
+  margin-bottom: 8px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.jira-version-bug-tooltip-item {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.jira-version-bug-tooltip-summary {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.jira-version-bug-tooltip-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.jira-version-bug-tooltip-more,
+.jira-version-bug-tooltip-empty {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.jira-version-bug-tooltip-more {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
 .jira-group {
   margin-top: 14px;
+}
+
+.jira-group-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  background: var(--bg-surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.jira-group-toggle:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.jira-group-toggle span:last-child {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
 }
 
 .jira-group-title {
@@ -1103,8 +1328,165 @@ body {
 
 .jira-key:hover { text-decoration: underline; }
 
-.jira-issue-table tbody tr,
-.jira-section-table tbody tr {
+.jira-issue-table {
+  table-layout: fixed;
+}
+
+.jira-issue-table th:nth-child(1),
+.jira-issue-table td:nth-child(1) { width: 92px; }
+
+.jira-issue-table th:nth-child(2),
+.jira-issue-table td:nth-child(2) {
+  width: clamp(320px, 38%, 560px);
+}
+
+.jira-issue-table .col-desc {
+  min-width: 0;
+}
+
+.jira-issue-table th:nth-child(3),
+.jira-issue-table td:nth-child(3) { width: 128px; }
+
+.jira-issue-table th:nth-child(4),
+.jira-issue-table td:nth-child(4) { width: 96px; }
+
+.jira-issue-table th:nth-child(5),
+.jira-issue-table td:nth-child(5) {
+  width: 150px;
+  overflow-wrap: anywhere;
+}
+
+.jira-issue-table th:nth-child(6),
+.jira-issue-table td:nth-child(6) {
+  width: 170px;
+  white-space: nowrap;
+}
+
+.jira-issue-table th:nth-child(7),
+.jira-issue-table td:nth-child(7) { width: 110px; }
+
+@media (min-width: 1400px) {
+  .jira-issue-table th:nth-child(1),
+  .jira-issue-table td:nth-child(1) { width: 7%; }
+
+  .jira-issue-table th:nth-child(2),
+  .jira-issue-table td:nth-child(2) { width: 40%; }
+
+  .jira-issue-table th:nth-child(3),
+  .jira-issue-table td:nth-child(3) { width: 12%; }
+
+  .jira-issue-table th:nth-child(4),
+  .jira-issue-table td:nth-child(4) { width: 9%; }
+
+  .jira-issue-table th:nth-child(5),
+  .jira-issue-table td:nth-child(5) { width: 13%; }
+
+  .jira-issue-table th:nth-child(6),
+  .jira-issue-table td:nth-child(6) { width: 12%; }
+
+  .jira-issue-table th:nth-child(7),
+  .jira-issue-table td:nth-child(7) { width: 7%; }
+}
+
+.jira-issue-table .badge-status,
+.jira-priority-badge {
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.jira-issue-table .status-to-do,
+.jira-issue-table .status-open,
+.jira-issue-table .status-backlog,
+.jira-issue-table .status-ready {
+  background: var(--accent-dim);
+  border-color: #58a6ff55;
+  color: var(--accent);
+}
+
+.jira-issue-table .status-in-progress,
+.jira-issue-table .status-dev-in-progress,
+.jira-issue-table .status-selected-for-development,
+.jira-issue-table .status-pod-working {
+  background: var(--purple-dim);
+  border-color: #bc8cff55;
+  color: var(--purple);
+}
+
+.jira-issue-table .status-block,
+.jira-issue-table .status-blocked,
+.jira-issue-table .status-impediment {
+  background: var(--red-dim);
+  border-color: #f8514955;
+  color: var(--red);
+}
+
+.jira-issue-table .status-done,
+.jira-issue-table .status-closed,
+.jira-issue-table .status-resolved,
+.jira-issue-table .status-live,
+.jira-issue-table .status-ready-for-release {
+  background: var(--green-dim);
+  border-color: #3fb95055;
+  color: var(--green);
+}
+
+.jira-issue-table .status-review,
+.jira-issue-table .status-in-review,
+.jira-issue-table .status-qa,
+.jira-issue-table .status-testing {
+  background: var(--yellow-dim);
+  border-color: #d2992255;
+  color: var(--yellow);
+}
+
+.jira-issue-table .badge-status .status-dot { background: currentColor; }
+
+.jira-priority-highest {
+  background: var(--red-dim);
+  border-color: #f8514955;
+  color: var(--red);
+}
+
+.jira-priority-high {
+  background: var(--yellow-dim);
+  border-color: #d2992255;
+  color: var(--yellow);
+}
+
+.jira-priority-medium {
+  background: var(--accent-dim);
+  border-color: #58a6ff55;
+  color: var(--accent);
+}
+
+.jira-priority-low {
+  background: var(--green-dim);
+  border-color: #3fb95055;
+  color: var(--green);
+}
+
+.jira-priority-lowest {
+  background: var(--bg-surface2);
+  border-color: var(--border-light);
+  color: var(--text-muted);
+}
+
+.jira-priority-none {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+
+.jira-issue-table tbody tr {
   cursor: default;
 }
 
@@ -1116,20 +1498,105 @@ body {
   text-align: center;
 }
 
-.jira-adhoc-form {
-  display: flex;
-  align-items: end;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-
-.jira-jql-field { flex: 1 1 360px; }
-.jira-history-field { flex: 0 0 220px; }
-.jira-section-picker { max-width: 320px; margin-bottom: 16px; }
 .jira-filter-field { flex: 0 0 160px; }
+.jira-multi-field { position: relative; }
 .jira-search-field { flex: 1 1 220px; }
 .jira-filter-controls { align-items: end; flex-wrap: wrap; }
+
+.jira-multi-dropdown {
+  position: relative;
+}
+
+.jira-multi-toggle {
+  width: 100%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 10px;
+  background: var(--bg-surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.jira-multi-toggle:hover,
+.jira-multi-toggle[aria-expanded="true"] {
+  border-color: var(--border-light);
+  background: var(--bg-hover);
+}
+
+.jira-multi-toggle span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jira-multi-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 5px);
+  left: 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: min(520px, calc(100vw - 48px));
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 5px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.jira-multi-option {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 0;
+  padding: 4px 9px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.jira-multi-option:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.jira-multi-option input {
+  flex: 0 0 auto;
+  order: 0;
+  margin: 0;
+  width: 13px;
+  height: 13px;
+  accent-color: var(--accent);
+}
+
+.jira-multi-option span {
+  order: 1;
+  min-width: 0;
+  max-width: 460px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jira-multi-empty {
+  padding: 10px;
+  color: var(--text-dim);
+  font-size: 12px;
+  text-align: center;
+}
 
 .jira-panel {
   background: var(--bg-surface);
@@ -1157,6 +1624,8 @@ body {
 @media (max-width: 1200px) {
   .charts-row { grid-template-columns: 1fr; }
   .summary-row { grid-template-columns: repeat(2, 1fr); }
+  .jira-summary-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .jira-summary-row .jira-version-widget { grid-column: 1 / -1; }
   .task-detail-grid { grid-template-columns: repeat(2, 1fr); }
 }
 

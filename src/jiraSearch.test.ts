@@ -38,6 +38,7 @@ test('executes raw JQL search with requested fields and normalizes issue output'
               key: 'EX-1',
               fields: {
                 summary: 'Ship dashboard',
+                issuetype: { name: 'Story' },
                 status: { name: 'To Do' },
                 priority: { name: 'High' },
                 fixVersions: [{ name: '1.2.0' }],
@@ -59,13 +60,14 @@ test('executes raw JQL search with requested fields and normalizes issue output'
   assert.deepEqual(searchRequests[0].body, {
     jql: 'project = EXAMPLE ORDER BY updated DESC',
     maxResults: 100,
-    fields: ['summary', 'status', 'priority', 'fixVersions', 'updated', 'customfield_12345'],
+    fields: ['summary', 'issuetype', 'status', 'priority', 'fixVersions', 'updated', 'customfield_12345'],
   });
   assert.deepEqual(result.issues, [
     {
       key: 'EX-1',
       url: 'https://example.atlassian.net/browse/EX-1',
       summary: 'Ship dashboard',
+      issueType: 'Story',
       status: 'To Do',
       priority: 'High',
       fixVersions: ['1.2.0'],
@@ -144,7 +146,7 @@ test('returns missing Pod warning and searches without a Pod field when discover
 
   assert.equal(result.ok, true);
   if (!result.ok) assert.fail('Expected missing Pod to be non-fatal.');
-  assert.deepEqual(searchRequests[0].body.fields, ['summary', 'status', 'priority', 'fixVersions', 'updated']);
+  assert.deepEqual(searchRequests[0].body.fields, ['summary', 'issuetype', 'status', 'priority', 'fixVersions', 'updated']);
   assert.equal(result.issues[0].pod, '');
   assert.deepEqual(result.warnings, [
     {
@@ -175,6 +177,7 @@ test('normalizes null or unexpected Jira field values without throwing', async (
               key: 42,
               fields: {
                 summary: null,
+                issuetype: null,
                 status: null,
                 priority: 123,
                 fixVersions: { name: 'not-an-array' },
@@ -194,6 +197,7 @@ test('normalizes null or unexpected Jira field values without throwing', async (
     key: '',
     url: '',
     summary: '',
+    issueType: '',
     status: '',
     priority: '',
     fixVersions: [],
@@ -223,6 +227,7 @@ function makeIssues(startAt: number, count: number): unknown[] {
       key: `EX-${issueNumber}`,
       fields: {
         summary: `Issue ${issueNumber}`,
+        issuetype: { name: 'Story' },
         status: { name: 'Open' },
         priority: { name: 'Medium' },
         fixVersions: [],

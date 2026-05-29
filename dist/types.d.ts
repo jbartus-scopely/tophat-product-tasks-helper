@@ -63,6 +63,7 @@ export interface JiraNormalizedIssue {
     key: string;
     url: string;
     summary: string;
+    issueType: string;
     status: string;
     priority: string;
     fixVersions: string[];
