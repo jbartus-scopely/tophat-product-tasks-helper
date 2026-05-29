@@ -50,6 +50,52 @@ export interface FilterOptions {
     limit?: number;
     search?: string;
 }
+export interface JiraSavedSection {
+    id: string;
+    title: string;
+    jql: string;
+}
+export interface JiraWarning {
+    code: string;
+    message: string;
+}
+export interface JiraNormalizedIssue {
+    key: string;
+    url: string;
+    summary: string;
+    status: string;
+    priority: string;
+    fixVersions: string[];
+    updated: string;
+    pod: string;
+    sourceSectionId: string;
+    sourceSectionTitle: string;
+}
+export interface JiraSavedSectionsResponse {
+    sections: JiraSavedSection[];
+    warnings?: JiraWarning[];
+}
+export interface JiraIssueSearchResponse {
+    issues: JiraNormalizedIssue[];
+    warnings: JiraWarning[];
+}
+export interface JiraApiErrorResponse {
+    error: string;
+    details?: string[];
+}
+export interface JiraConfigError {
+    code: string;
+    message: string;
+    path: string;
+    details?: string[];
+}
+export type JiraSavedSectionsConfigResult = {
+    ok: true;
+    sections: JiraSavedSection[];
+} | {
+    ok: false;
+    error: JiraConfigError;
+};
 export interface GroomedTask {
     taskId: string;
     aiDescription: string;

@@ -42,3 +42,6 @@ next-env.d.ts
 
 # ai response cache
 /.cache
+
+# SDD working specs (personal artifacts, share manually)
+.specs/

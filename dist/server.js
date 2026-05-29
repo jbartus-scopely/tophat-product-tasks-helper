@@ -3,7 +3,9 @@ import { serve } from '@hono/node-server';
 import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname, extname } from 'path';
 import { fileURLToPath } from 'url';
-import { loadBacklog, computeStats, getGroups, getPods, getCategoryStatuses, getScoreMap, filterTasks, getTask, isAiAvailable, apiAnalyze, apiGroom, apiPrioritize, apiFindDuplicates, } from './api.js';
+import { loadBacklog, computeStats, getGroups, getPods, getCategoryStatuses, getScoreMap, filterTasks, getTask, isAiAvailable, isClaudeAvailable, isCodexAvailable, apiAnalyze, apiGroom, apiPrioritize, apiFindDuplicates, } from './api.js';
+import { loadJiraSavedSectionsConfig } from './jiraConfig.js';
+import { searchJiraIssues } from './jiraSearch.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const WEB_DIR = resolve(__dirname, '..', 'src', 'web');
@@ -52,9 +54,10 @@ function requireBacklog() {
         throw new Error('No backlog loaded. Upload a CSV first.');
     return backlog;
 }
-export function startServer(port, filePath) {
-    tryLoadDefaultCsv(filePath);
+export function createApp(options = {}) {
     const app = new Hono();
+    const jiraConfigLoader = options.jiraConfigLoader ?? loadJiraSavedSectionsConfig;
+    const jiraIssueSearcher = options.jiraIssueSearcher ?? searchJiraIssues;
     // ── Static files ─────────────────────────────────────────
     app.get('/', (c) => {
         const html = readFileSync(resolve(WEB_DIR, 'index.html'), 'utf-8');
@@ -155,19 +158,83 @@ export function startServer(port, filePath) {
             return c.json({ error: e.message }, 400);
         }
     });
+    // ── API: Jira ────────────────────────────────────────────
+    app.get('/api/jira/sections', (c) => {
+        const result = jiraConfigLoader();
+        if (!result.ok)
+            return c.json(jiraConfigErrorResponse(result.error), 400);
+        return c.json({ sections: result.sections });
+    });
+    app.post('/api/jira/sections/search', async (c) => {
+        const config = jiraConfigLoader();
+        if (!config.ok)
+            return c.json(jiraConfigErrorResponse(config.error), 400);
+        const sections = [];
+        for (const section of config.sections) {
+            const result = await jiraIssueSearcher({
+                jql: section.jql,
+                sourceSectionId: section.id,
+                sourceSectionTitle: section.title,
+            });
+            if (result.ok) {
+                sections.push({
+                    ...section,
+                    issues: result.issues,
+                    warnings: result.warnings,
+                });
+            }
+            else {
+                sections.push({
+                    ...section,
+                    issues: [],
+                    warnings: [],
+                    error: routeErrorMessage(result.error),
+                });
+            }
+        }
+        return c.json({ sections });
+    });
+    app.post('/api/jira/search', async (c) => {
+        const body = await parseJsonBody(c.req.raw);
+        if (!body.ok)
+            return c.json({ error: body.error }, 400);
+        const jql = typeof body.value.jql === 'string' ? body.value.jql.trim() : '';
+        if (!jql)
+            return c.json({ error: 'Missing "jql" field.' }, 400);
+        const result = await jiraIssueSearcher({
+            jql,
+            sourceSectionId: 'ad-hoc',
+            sourceSectionTitle: 'Ad hoc JQL',
+        });
+        if (!result.ok) {
+            return c.json(routeErrorResponse(result.error), routeErrorStatus(result.error));
+        }
+        return c.json({
+            issues: result.issues,
+            warnings: result.warnings,
+        });
+    });
     // ── API: AI ──────────────────────────────────────────────
     app.get('/api/ai/status', (c) => {
-        return c.json({ available: isAiAvailable() });
+        return c.json({
+            available: isAiAvailable(),
+            claude: isClaudeAvailable(),
+            codex: isCodexAvailable(),
+        });
     });
     app.get('/api/ai/models', (c) => {
-        return c.json([
+        const claude = isClaudeAvailable();
+        const codex = isCodexAvailable();
+        const models = [
             { id: '', label: 'Default (CLI setting)', category: 'default' },
-            { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', category: 'fast', desc: 'Fastest, good for simple queries' },
-            { id: 'claude-sonnet-4-5-20250514', label: 'Sonnet 4.5', category: 'fast', desc: 'Fast and capable' },
-            { id: 'claude-sonnet-4-6-20250514', label: 'Sonnet 4.6', category: 'balanced', desc: 'Best balance of speed and quality' },
-            { id: 'claude-opus-4-6-20250414', label: 'Opus 4.6', category: 'thoughtful', desc: 'Deep analysis, slower' },
-            { id: 'claude-opus-4-7-20250506', label: 'Opus 4.7', category: 'thoughtful', desc: 'Most capable, slowest' },
-        ]);
+        ];
+        if (claude) {
+            models.push({ id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', category: 'fast', desc: 'Fastest, good for simple queries', provider: 'claude' }, { id: 'claude-sonnet-4-5-20250514', label: 'Sonnet 4.5', category: 'fast', desc: 'Fast and capable', provider: 'claude' }, { id: 'claude-sonnet-4-6-20250514', label: 'Sonnet 4.6', category: 'balanced', desc: 'Best balance of speed and quality', provider: 'claude' }, { id: 'claude-opus-4-6-20250414', label: 'Opus 4.6', category: 'thoughtful', desc: 'Deep analysis, slower', provider: 'claude' }, { id: 'claude-opus-4-7-20250506', label: 'Opus 4.7', category: 'thoughtful', desc: 'Most capable, slowest', provider: 'claude' });
+        }
+        if (codex) {
+            models.push({ id: 'o3-mini', label: 'o3-mini', category: 'codex-fast', desc: 'Fast reasoning model', provider: 'codex' }, { id: 'o4-mini', label: 'o4-mini', category: 'codex-fast', desc: 'Fast and efficient', provider: 'codex' }, { id: 'gpt-4.1', label: 'GPT-4.1', category: 'codex-balanced', desc: 'Balanced capability', provider: 'codex' }, { id: 'o3', label: 'o3', category: 'codex-thoughtful', desc: 'Deep reasoning', provider: 'codex' });
+        }
+        return c.json(models);
     });
     app.post('/api/ai/analyze', async (c) => {
         try {
@@ -237,6 +304,11 @@ export function startServer(port, filePath) {
             return c.json({ error: e.message }, 500);
         }
     });
+    return app;
+}
+export function startServer(port, filePath) {
+    tryLoadDefaultCsv(filePath);
+    const app = createApp();
     serve({ fetch: app.fetch, port }, () => {
         const loaded = backlog ? `${backlog.tasks.length} tasks loaded` : 'no CSV loaded';
         console.log(`\n  PTH Web UI running at http://localhost:${port}`);
@@ -250,5 +322,48 @@ if (isMain) {
     await import('dotenv/config');
     const port = parseInt(process.env.PTH_PORT || '3000');
     startServer(port);
+}
+function jiraConfigErrorResponse(error) {
+    const response = { error: sanitizeRouteText(error.message) };
+    if (error.details?.length)
+        response.details = error.details.map(sanitizeRouteText);
+    return response;
+}
+function routeErrorResponse(error) {
+    const response = { error: routeErrorMessage(error) };
+    if (error.details?.length)
+        response.details = error.details.map(sanitizeRouteText);
+    return response;
+}
+function routeErrorMessage(error) {
+    return sanitizeRouteText(error.message || 'Jira request failed.');
+}
+function routeErrorStatus(error) {
+    if (error.status && error.status >= 400 && error.status < 500)
+        return 400;
+    if (error.status && error.status >= 500)
+        return 502;
+    if (error.code?.includes('env') || error.code?.includes('invalid'))
+        return 400;
+    return 500;
+}
+async function parseJsonBody(request) {
+    try {
+        const value = await request.json();
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            return { ok: true, value: value };
+        }
+        return { ok: false, error: 'Request body must be a JSON object.' };
+    }
+    catch {
+        return { ok: false, error: 'Request body must be valid JSON.' };
+    }
+}
+function sanitizeRouteText(value) {
+    let sanitized = value;
+    for (const secret of [process.env.JIRA_API_TOKEN, process.env.JIRA_EMAIL].filter(Boolean)) {
+        sanitized = sanitized.split(secret).join('[redacted]');
+    }
+    return sanitized.replace(/authorization/gi, '[redacted]');
 }
 //# sourceMappingURL=server.js.map

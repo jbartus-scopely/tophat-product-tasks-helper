@@ -1,4 +1,4 @@
-import { api, apiPost, MAX_SCORE, getAiJob, startAiJob, cancelAiJob, resetAiJob, getModels, getSelectedModel, setSelectedModel, getQueryHistory, addQueryToHistory, toggleStarQuery, removeQueryFromHistory, clearQueryHistory, isSelected, addToSelection, addAiTaskToSelection, removeFromSelection, getSelection, clearSelection, updateSelectionOverride, updateSelectionNotes } from './shared.js';
+import { api, apiPost, MAX_SCORE, getAiJob, startAiJob, cancelAiJob, resetAiJob, getModels, getSelectedModel, setSelectedModel, getQueryHistory, addQueryToHistory, toggleStarQuery, removeQueryFromHistory, clearQueryHistory, getJiraQueryHistory, isSelected, addToSelection, addAiTaskToSelection, removeFromSelection, getSelection, clearSelection, updateSelectionOverride, updateSelectionNotes } from './shared.js';
 
 // ── Helpers ──────────────────────────────────────────────────
 function esc(str) {
@@ -675,6 +675,467 @@ function stopTimer() {
 
 function errorHtml(msg) {
   return `<div class="warnings"><div class="warnings-title"><i data-lucide="triangle-alert" style="width:14px;height:14px;vertical-align:-2px"></i> Error</div><p>${esc(msg)}</p></div>`;
+}
+
+function simpleSpinnerHtml(text) {
+  return `<div class="spinner-container"><div class="spinner"></div><div class="spinner-text">${esc(text)}</div></div>`;
+}
+
+// ── Jira View ───────────────────────────────────────────────
+const JIRA_TABS = [
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'all-data', label: 'All Data' },
+];
+
+const ALL_SECTIONS = '__all__';
+const EMPTY_VALUE = '__empty__';
+const JIRA_PRIORITY_RANK = {
+  highest: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+  lowest: 4,
+  '': 5,
+};
+
+function jiraIssueCount(section) {
+  return Array.isArray(section.issues) ? section.issues.length : 0;
+}
+
+function jiraWarningCount(section) {
+  return Array.isArray(section.warnings) ? section.warnings.length : 0;
+}
+
+function jiraStatusBadge(section) {
+  if (section.error) return '<span class="badge-ai-action action-discard">Error</span>';
+  if (jiraWarningCount(section) > 0) return '<span class="badge-ai-action action-keep-triage">Warning</span>';
+  return '<span class="badge-ai-action action-todo">Loaded</span>';
+}
+
+function jiraValueBadge(value) {
+  return `<span class="badge-group">${esc(value || '--')}</span>`;
+}
+
+function jiraFixVersions(issue) {
+  return Array.isArray(issue.fixVersions) ? issue.fixVersions.filter(Boolean) : [];
+}
+
+function jiraFixVersionLabel(issue) {
+  const versions = jiraFixVersions(issue);
+  return versions.length ? versions.join(', ') : '--';
+}
+
+function jiraDisplayDate(value) {
+  if (!value) return '--';
+  const parsed = Date.parse(normalizeDateForParse(value));
+  if (Number.isNaN(parsed)) return value;
+  return new Date(parsed).toLocaleString();
+}
+
+function normalizeDateForParse(value) {
+  return String(value).replace(/([+-]\d{2})(\d{2})$/, '$1:$2');
+}
+
+function jiraUpdatedSortValue(issue) {
+  const parsed = Date.parse(normalizeDateForParse(issue.updated || ''));
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function jiraKeyCell(issue) {
+  const key = issue.key || '--';
+  if (!issue.url) return `<span class="col-id">${esc(key)}</span>`;
+  return `<a class="jira-key" href="${esc(issue.url)}" target="_blank" rel="noopener noreferrer">${esc(key)}</a>`;
+}
+
+function jiraIssueRows(issues) {
+  if (!issues.length) {
+    return '<tr><td colspan="7" class="jira-empty-cell">No issues found.</td></tr>';
+  }
+
+  return issues.map(issue => `<tr data-jira-key="${esc(issue.key || '')}">
+    <td>${jiraKeyCell(issue)}</td>
+    <td class="col-desc">${esc(issue.summary || '--')}</td>
+    <td>${statusBadge(issue.status)}</td>
+    <td>${jiraValueBadge(issue.priority)}</td>
+    <td>${esc(jiraFixVersionLabel(issue))}</td>
+    <td>${esc(jiraDisplayDate(issue.updated))}</td>
+    <td class="col-pod">${esc(issue.pod || '--')}</td>
+  </tr>`).join('');
+}
+
+function sortHeader(label, field, sort) {
+  const cls = sort?.field === field ? ` sortable sort-${sort.dir}` : ' sortable';
+  return `<th class="${cls}" data-jira-sort="${field}">${esc(label)}</th>`;
+}
+
+function jiraIssueTableHtml(issues, opts = {}) {
+  const sort = opts.sort || null;
+  let html = '<table class="data-table jira-issue-table"><thead><tr>';
+  html += opts.sortable ? sortHeader('Key', 'key', sort) : '<th>Key</th>';
+  html += '<th>Summary</th>';
+  html += opts.sortable ? sortHeader('Status', 'status', sort) : '<th>Status</th>';
+  html += opts.sortable ? sortHeader('Priority', 'priority', sort) : '<th>Priority</th>';
+  html += opts.sortable ? sortHeader('Fix version', 'fixVersion', sort) : '<th>Fix version</th>';
+  html += opts.sortable ? sortHeader('Updated', 'updated', sort) : '<th>Updated</th>';
+  html += opts.sortable ? sortHeader('Pod', 'pod', sort) : '<th>Pod</th>';
+  html += '</tr></thead><tbody>';
+  html += jiraIssueRows(issues);
+  html += '</tbody></table>';
+  return html;
+}
+
+function allSavedIssues(sections) {
+  return sections.flatMap(section => Array.isArray(section.issues) ? section.issues : []);
+}
+
+function uniqueSorted(values) {
+  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+}
+
+function optionHtml(value, label, selectedValue) {
+  const selected = value === selectedValue ? ' selected' : '';
+  return `<option value="${esc(value)}"${selected}>${esc(label)}</option>`;
+}
+
+function filterSelectHtml(id, label, options, value, includeEmpty = false) {
+  let html = `<div class="ai-form-field jira-filter-field"><label>${esc(label)}</label><select id="${id}">`;
+  html += optionHtml('', `All ${label.toLowerCase()}`, value);
+  if (includeEmpty) html += optionHtml(EMPTY_VALUE, `No ${label.toLowerCase()}`, value);
+  for (const option of options) html += optionHtml(option, option, value);
+  html += '</select></div>';
+  return html;
+}
+
+function selectedSavedIssues(sections, selectedSectionId) {
+  if (selectedSectionId === ALL_SECTIONS) return allSavedIssues(sections);
+  const section = sections.find(section => section.id === selectedSectionId);
+  return section && Array.isArray(section.issues) ? section.issues : [];
+}
+
+function currentAllDataIssues(jira) {
+  const allData = jira.allData || {};
+  if (allData.mode === 'ad-hoc') return Array.isArray(allData.adHocIssues) ? allData.adHocIssues : [];
+  return selectedSavedIssues(jira.sections || [], allData.selectedSectionId || ALL_SECTIONS);
+}
+
+function issueMatchesFilter(issue, filters) {
+  if (filters.status && (issue.status || '') !== filters.status) return false;
+  if (filters.priority && (issue.priority || '') !== filters.priority) return false;
+
+  const fixVersions = jiraFixVersions(issue);
+  if (filters.fixVersion === EMPTY_VALUE && fixVersions.length > 0) return false;
+  if (filters.fixVersion && filters.fixVersion !== EMPTY_VALUE && !fixVersions.includes(filters.fixVersion)) return false;
+
+  const pod = issue.pod || '';
+  if (filters.pod === EMPTY_VALUE && pod) return false;
+  if (filters.pod && filters.pod !== EMPTY_VALUE && pod !== filters.pod) return false;
+
+  const search = (filters.search || '').trim().toLowerCase();
+  if (search) {
+    const haystack = `${issue.key || ''} ${issue.summary || ''}`.toLowerCase();
+    if (!haystack.includes(search)) return false;
+  }
+
+  return true;
+}
+
+function compareJiraIssues(a, b, field) {
+  if (field === 'updated') return jiraUpdatedSortValue(a) - jiraUpdatedSortValue(b);
+  if (field === 'priority') {
+    const ar = JIRA_PRIORITY_RANK[(a.priority || '').toLowerCase()] ?? 5;
+    const br = JIRA_PRIORITY_RANK[(b.priority || '').toLowerCase()] ?? 5;
+    if (ar !== br) return ar - br;
+  }
+  if (field === 'fixVersion') {
+    const av = jiraFixVersions(a).join(', ');
+    const bv = jiraFixVersions(b).join(', ');
+    return av.localeCompare(bv);
+  }
+  const av = field === 'key' ? a.key : field === 'status' ? a.status : field === 'pod' ? a.pod : '';
+  const bv = field === 'key' ? b.key : field === 'status' ? b.status : field === 'pod' ? b.pod : '';
+  return (av || '').localeCompare(bv || '');
+}
+
+function filteredSortedJiraIssues(issues, allData) {
+  const filters = allData.filters || {};
+  const sort = allData.sort || { field: 'key', dir: 'asc' };
+  const filtered = issues.filter(issue => issueMatchesFilter(issue, filters));
+  const direction = sort.dir === 'desc' ? -1 : 1;
+  return [...filtered].sort((a, b) => compareJiraIssues(a, b, sort.field) * direction);
+}
+
+function sectionOptionsHtml(sections, selectedSectionId) {
+  let html = '<div class="ai-form-field jira-section-picker"><label>Section</label><select id="jira-section-select">';
+  html += optionHtml(ALL_SECTIONS, 'All saved sections', selectedSectionId);
+  for (const section of sections) html += optionHtml(section.id, section.title || section.id, selectedSectionId);
+  html += '</select></div>';
+  return html;
+}
+
+function jiraWarningsHtml(warnings) {
+  if (!warnings || warnings.length === 0) return '';
+  let html = '<div class="warnings"><div class="warnings-title"><i data-lucide="triangle-alert" style="width:14px;height:14px;vertical-align:-2px"></i> Warnings</div><ul class="warnings-list">';
+  for (const warning of warnings) html += `<li>${esc(warning.message || warning.code || 'Jira warning')}</li>`;
+  html += '</ul></div>';
+  return html;
+}
+
+function jiraSectionsSummaryTable(sections) {
+  let html = '<table class="data-table jira-section-table"><thead><tr>';
+  html += '<th>Section</th><th>Issues</th><th>Status</th><th>Warnings</th>';
+  html += '</tr></thead><tbody>';
+
+  for (const section of sections) {
+    const warnings = jiraWarningCount(section);
+    html += '<tr>';
+    html += `<td><span class="col-id">${esc(section.title || section.id || '--')}</span></td>`;
+    html += `<td class="col-num">${jiraIssueCount(section)}</td>`;
+    html += `<td>${jiraStatusBadge(section)}</td>`;
+    html += `<td>${section.error ? esc(section.error) : warnings > 0 ? esc(`${warnings} warning${warnings === 1 ? '' : 's'}`) : '--'}</td>`;
+    html += '</tr>';
+  }
+
+  html += '</tbody></table>';
+  return html;
+}
+
+function jiraEmptyHtml(title, body) {
+  return `<div class="empty-state jira-empty">
+    <i data-lucide="radar" style="width:64px;height:64px;opacity:0.5;margin-bottom:16px"></i>
+    <h2>${esc(title)}</h2>
+    <p>${esc(body)}</p>
+  </div>`;
+}
+
+function jiraInlineEmptyHtml(message) {
+  return `<div class="jira-inline-empty">${esc(message)}</div>`;
+}
+
+function jiraSavedSectionsHtml(sections) {
+  let html = '<div class="jira-dashboard-stack">';
+  for (const section of sections) {
+    html += '<section class="jira-section-card">';
+    html += `<div class="jira-section-header"><div><div class="jira-section-title">${esc(section.title || section.id || 'Saved section')}</div><div class="jira-section-subtitle">${esc(section.id || '--')}</div></div>${jiraStatusBadge(section)}</div>`;
+    html += jiraWarningsHtml(section.warnings || []);
+    if (section.error) {
+      html += errorHtml(section.error);
+    } else if (!Array.isArray(section.issues) || section.issues.length === 0) {
+      html += jiraInlineEmptyHtml('No issues found.');
+    } else {
+      html += jiraIssueTableHtml(section.issues);
+    }
+    html += '</section>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function groupedByFixVersion(issues) {
+  const groups = new Map();
+  for (const issue of issues) {
+    const versions = jiraFixVersions(issue);
+    const labels = versions.length ? versions : ['No fix version'];
+    for (const label of labels) {
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(issue);
+    }
+  }
+  return [...groups.entries()].sort(([a], [b]) => {
+    if (a === 'No fix version') return 1;
+    if (b === 'No fix version') return -1;
+    return a.localeCompare(b);
+  });
+}
+
+function comingByVersionHtml(issues) {
+  let html = '<section class="jira-section-card"><div class="jira-section-header"><div class="jira-section-title">Coming by version</div></div>';
+  const groups = groupedByFixVersion(issues);
+  if (groups.length === 0) {
+    html += jiraInlineEmptyHtml('No issues found.');
+  } else {
+    for (const [version, rows] of groups) {
+      html += `<div class="jira-group"><div class="jira-group-title">${esc(version)} <span>${rows.length}</span></div>${jiraIssueTableHtml(rows)}</div>`;
+    }
+  }
+  html += '</section>';
+  return html;
+}
+
+function notStartedByPriorityHtml(issues) {
+  const notStarted = issues.filter(issue => {
+    const status = (issue.status || '').trim().toLowerCase();
+    return status === 'open' || status === 'to do';
+  });
+  const groups = new Map();
+  for (const issue of notStarted) {
+    const priority = issue.priority || 'No priority';
+    if (!groups.has(priority)) groups.set(priority, []);
+    groups.get(priority).push(issue);
+  }
+  const sortedGroups = [...groups.entries()].sort(([a], [b]) => {
+    const ar = JIRA_PRIORITY_RANK[a.toLowerCase()] ?? 5;
+    const br = JIRA_PRIORITY_RANK[b.toLowerCase()] ?? 5;
+    if (ar !== br) return ar - br;
+    return a.localeCompare(b);
+  });
+
+  let html = '<section class="jira-section-card"><div class="jira-section-header"><div class="jira-section-title">Not started by priority</div></div>';
+  if (notStarted.length === 0) {
+    html += jiraInlineEmptyHtml('No not-started issues found.');
+  } else {
+    for (const [priority, rows] of sortedGroups) {
+      html += `<div class="jira-group"><div class="jira-group-title">${esc(priority)} <span>${rows.length}</span></div>${jiraIssueTableHtml(rows)}</div>`;
+    }
+  }
+  html += '</section>';
+  return html;
+}
+
+function jiraDashboardShellHtml(sections, loaded) {
+  if (!loaded) return jiraEmptyHtml('No Jira data loaded', 'Refresh Jira to load saved sections.');
+  if (sections.length === 0) return jiraEmptyHtml('No Jira sections', 'Saved Jira sections returned no entries.');
+
+  const totalIssues = sections.reduce((sum, section) => sum + jiraIssueCount(section), 0);
+  const errorCount = sections.filter(section => section.error).length;
+  const warningCount = sections.reduce((sum, section) => sum + jiraWarningCount(section), 0);
+
+  let html = '<div class="summary-row jira-summary-row">';
+  html += `<div class="summary-card accent"><div class="summary-card-top"><i data-lucide="folder-kanban" class="summary-icon"></i></div><div class="summary-value">${sections.length}</div><div class="summary-label">Saved Sections</div></div>`;
+  html += `<div class="summary-card green"><div class="summary-card-top"><i data-lucide="list-checks" class="summary-icon"></i></div><div class="summary-value">${totalIssues}</div><div class="summary-label">Loaded Issues</div></div>`;
+  html += `<div class="summary-card yellow"><div class="summary-card-top"><i data-lucide="triangle-alert" class="summary-icon"></i></div><div class="summary-value">${warningCount}</div><div class="summary-label">Warnings</div></div>`;
+  html += `<div class="summary-card dim"><div class="summary-card-top"><i data-lucide="circle-x" class="summary-icon"></i></div><div class="summary-value">${errorCount}</div><div class="summary-label">Section Errors</div></div>`;
+  html += '</div>';
+  html += jiraSectionsSummaryTable(sections);
+  html += comingByVersionHtml(allSavedIssues(sections));
+  html += notStartedByPriorityHtml(allSavedIssues(sections));
+  html += jiraSavedSectionsHtml(sections);
+  return html;
+}
+
+function jiraAdHocFormHtml(allData) {
+  const history = getJiraQueryHistory();
+  let html = '<form class="jira-adhoc-form" id="jira-adhoc-form">';
+  html += '<div class="ai-form-field jira-jql-field"><label>Ad hoc JQL</label><input type="text" id="jira-ad-hoc-jql" value="' + esc(allData.adHocJql || '') + '" autocomplete="off"></div>';
+  if (history.length > 0) {
+    html += '<div class="ai-form-field jira-history-field"><label>Recent</label><select id="jira-history-select">';
+    html += '<option value="">Recent JQL</option>';
+    for (const entry of history) html += optionHtml(entry.query, truncate(entry.query, 80), '');
+    html += '</select></div>';
+  }
+  html += `<button type="submit" class="btn btn-primary" ${allData.adHocStatus === 'loading' ? 'disabled' : ''}><i data-lucide="play" style="width:14px;height:14px"></i> Run JQL</button>`;
+  if (allData.mode === 'ad-hoc') {
+    html += '<button type="button" class="btn" id="jira-use-saved"><i data-lucide="database" style="width:14px;height:14px"></i> Saved data</button>';
+  }
+  html += '</form>';
+  return html;
+}
+
+function jiraFilterControlsHtml(baseIssues, allData) {
+  const filters = allData.filters || {};
+  const statuses = uniqueSorted(baseIssues.map(issue => issue.status || ''));
+  const priorities = uniqueSorted(baseIssues.map(issue => issue.priority || ''));
+  const fixVersions = uniqueSorted(baseIssues.flatMap(issue => jiraFixVersions(issue)));
+  const pods = uniqueSorted(baseIssues.map(issue => issue.pod || ''));
+
+  let html = '<div class="table-controls jira-filter-controls">';
+  html += filterSelectHtml('jira-filter-status', 'Status', statuses, filters.status || '');
+  html += filterSelectHtml('jira-filter-priority', 'Priority', priorities, filters.priority || '');
+  html += filterSelectHtml('jira-filter-fix-version', 'Fix version', fixVersions, filters.fixVersion || '', true);
+  html += filterSelectHtml('jira-filter-pod', 'Pod', pods, filters.pod || '', true);
+  html += `<div class="ai-form-field jira-search-field"><label>Search</label><input type="text" id="jira-filter-search" value="${esc(filters.search || '')}"></div>`;
+  html += '</div>';
+  return html;
+}
+
+function jiraAllDataShellHtml(jira, loaded) {
+  const sections = jira.sections || [];
+  const allData = jira.allData || {};
+  if (!loaded) return jiraEmptyHtml('No Jira data loaded', 'Refresh Jira to load saved sections.');
+  if (sections.length === 0 && allData.mode !== 'ad-hoc') return jiraEmptyHtml('No Jira sections', 'Saved Jira sections returned no entries.');
+
+  const baseIssues = currentAllDataIssues(jira);
+  const visibleIssues = filteredSortedJiraIssues(baseIssues, allData);
+  const selectedSectionId = allData.selectedSectionId || ALL_SECTIONS;
+  let html = '';
+
+  html += jiraAdHocFormHtml(allData);
+  if (allData.mode === 'saved') html += sectionOptionsHtml(sections, selectedSectionId);
+  html += jiraFilterControlsHtml(baseIssues, allData);
+
+  if (allData.adHocStatus === 'loading') {
+    html += simpleSpinnerHtml('Running Jira search...');
+  } else if (allData.mode === 'ad-hoc' && allData.adHocStatus === 'error') {
+    html += errorHtml(allData.adHocError || 'Jira request failed.');
+  } else {
+    html += jiraWarningsHtml(allData.mode === 'ad-hoc' ? allData.adHocWarnings : []);
+    html += jiraIssueTableHtml(visibleIssues, { sortable: true, sort: allData.sort });
+    html += `<div class="table-footer">Showing ${visibleIssues.length} of ${baseIssues.length} Jira issues</div>`;
+  }
+
+  return html;
+}
+
+export function renderJiraView($el, state, actions = {}) {
+  const jira = state.jira || {};
+  const activeTab = jira.activeTab === 'all-data' ? 'all-data' : 'dashboard';
+  const sections = Array.isArray(jira.sections) ? jira.sections : [];
+  const isLoading = jira.status === 'loading';
+  const lastLoaded = jira.lastLoadedAt ? new Date(jira.lastLoadedAt).toLocaleString() : '';
+
+  let html = '<div class="jira-shell">';
+  html += '<div class="jira-toolbar">';
+  html += '<div class="jira-tabs" role="tablist" aria-label="Jira views">';
+  for (const tab of JIRA_TABS) {
+    const active = tab.id === activeTab;
+    html += `<button type="button" class="jira-tab${active ? ' active' : ''}" data-jira-tab="${tab.id}" role="tab" aria-selected="${active}">${esc(tab.label)}</button>`;
+  }
+  html += '</div>';
+  html += '<div class="jira-actions">';
+  if (lastLoaded) html += `<span class="jira-last-loaded">Updated ${esc(lastLoaded)}</span>`;
+  html += `<button type="button" class="btn btn-primary" id="jira-refresh" ${isLoading ? 'disabled' : ''}><i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Refresh</button>`;
+  html += '</div></div>';
+
+  if (isLoading) {
+    html += simpleSpinnerHtml('Loading Jira data...');
+  } else if (jira.status === 'error') {
+    html += errorHtml(jira.error || 'Jira request failed.');
+  } else if (activeTab === 'dashboard') {
+    html += jiraDashboardShellHtml(sections, jira.loaded);
+  } else {
+    html += jiraAllDataShellHtml(jira, jira.loaded);
+  }
+
+  html += '</div>';
+  $el.innerHTML = html;
+
+  document.getElementById('jira-refresh')?.addEventListener('click', () => actions.onRefresh?.());
+  $el.querySelectorAll('[data-jira-tab]').forEach(button => {
+    button.addEventListener('click', () => {
+      const tab = button.dataset.jiraTab;
+      if (tab && tab !== activeTab) actions.onTabChange?.(tab);
+    });
+  });
+  document.getElementById('jira-section-select')?.addEventListener('change', (e) => actions.onSectionChange?.(e.target.value));
+  document.getElementById('jira-filter-status')?.addEventListener('change', (e) => actions.onFilterChange?.('status', e.target.value));
+  document.getElementById('jira-filter-priority')?.addEventListener('change', (e) => actions.onFilterChange?.('priority', e.target.value));
+  document.getElementById('jira-filter-fix-version')?.addEventListener('change', (e) => actions.onFilterChange?.('fixVersion', e.target.value));
+  document.getElementById('jira-filter-pod')?.addEventListener('change', (e) => actions.onFilterChange?.('pod', e.target.value));
+  document.getElementById('jira-filter-search')?.addEventListener('input', (e) => actions.onFilterChange?.('search', e.target.value));
+  document.getElementById('jira-adhoc-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const value = document.getElementById('jira-ad-hoc-jql')?.value || '';
+    actions.onAdHocSearch?.(value);
+  });
+  document.getElementById('jira-history-select')?.addEventListener('change', (e) => {
+    const input = document.getElementById('jira-ad-hoc-jql');
+    if (input && e.target.value) input.value = e.target.value;
+  });
+  document.getElementById('jira-use-saved')?.addEventListener('click', () => actions.onUseSavedData?.());
+  $el.querySelectorAll('[data-jira-sort]').forEach(header => {
+    header.addEventListener('click', () => actions.onSortChange?.(header.dataset.jiraSort));
+  });
+
+  if (window.lucide) lucide.createIcons();
 }
 
 // ── Dashboard View ───────────────────────────────────────────

@@ -9,7 +9,8 @@
   "scripts": {
     "pth": "tsx src/cli.ts",
     "web": "tsx src/server.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "npm run build && node --test \"dist/**/*.test.js\""
   },
   "dependencies": {
     "@hono/node-server": "^1.19.14",

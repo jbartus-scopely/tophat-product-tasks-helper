@@ -1,5 +1,5 @@
-import { api, onAiJobChange, getAiJob, getRunningAiView, loadModels, onSelectionChange, getSelectionCount } from './shared.js';
-import { renderDashboard, renderTaskList, renderAiView, renderSelectionView } from './components.js';
+import { api, apiPost, onAiJobChange, getAiJob, getRunningAiView, loadModels, onSelectionChange, getSelectionCount, addJiraQueryToHistory } from './shared.js';
+import { renderDashboard, renderTaskList, renderAiView, renderSelectionView, renderJiraView } from './components.js';
 
 let state = {
   backlogLoaded: false,
@@ -8,6 +8,35 @@ let state = {
   pods: [],
   scores: {},
   aiAvailable: false,
+  jira: {
+    activeTab: 'dashboard',
+    status: 'idle',
+    sections: [],
+    error: null,
+    loaded: false,
+    startedAt: null,
+    lastLoadedAt: null,
+    allData: {
+      mode: 'saved',
+      selectedSectionId: '__all__',
+      filters: {
+        status: '',
+        priority: '',
+        fixVersion: '',
+        pod: '',
+        search: '',
+      },
+      sort: {
+        field: 'key',
+        dir: 'asc',
+      },
+      adHocJql: '',
+      adHocStatus: 'idle',
+      adHocIssues: [],
+      adHocWarnings: [],
+      adHocError: null,
+    },
+  },
 };
 
 const $view = document.getElementById('view-container');
@@ -29,6 +58,7 @@ const VIEW_TITLES = {
   prioritize: 'AI: Prioritize',
   duplicates: 'AI: Find Duplicates',
   selection: 'Selection',
+  jira: 'Jira Watch',
 };
 
 const AI_VIEWS = ['analyze', 'groom', 'prioritize', 'duplicates'];
@@ -159,7 +189,12 @@ function route() {
 
   $title.textContent = VIEW_TITLES[view] || 'Dashboard';
 
-  if (view === 'selection') {
+  if (view === 'jira') {
+    renderJira();
+    if (state.jira.status === 'idle' && !state.jira.loaded) {
+      loadJiraSections();
+    }
+  } else if (view === 'selection') {
     renderSelectionView($view, state);
   } else if (!state.backlogLoaded) {
     showEmptyState();
@@ -184,6 +219,178 @@ function route() {
 }
 
 window.addEventListener('hashchange', route);
+
+function renderJira() {
+  renderJiraView($view, state, {
+    onRefresh: refreshJira,
+    onTabChange: setJiraTab,
+    onSectionChange: setJiraSection,
+    onFilterChange: setJiraFilter,
+    onSortChange: setJiraSort,
+    onAdHocSearch: runJiraAdHocSearch,
+    onUseSavedData: useSavedJiraData,
+  });
+}
+
+function setJiraTab(tab) {
+  state.jira.activeTab = tab;
+  renderJira();
+  if (window.lucide) lucide.createIcons();
+}
+
+function setJiraSection(sectionId) {
+  state.jira.allData = {
+    ...state.jira.allData,
+    mode: 'saved',
+    selectedSectionId: sectionId,
+  };
+  renderJira();
+  if (window.lucide) lucide.createIcons();
+}
+
+function setJiraFilter(name, value) {
+  state.jira.allData = {
+    ...state.jira.allData,
+    filters: {
+      ...state.jira.allData.filters,
+      [name]: value,
+    },
+  };
+  renderJira();
+  if (window.lucide) lucide.createIcons();
+}
+
+function setJiraSort(field) {
+  const current = state.jira.allData.sort;
+  const dir = current.field === field && current.dir === 'asc' ? 'desc' : 'asc';
+  state.jira.allData = {
+    ...state.jira.allData,
+    sort: { field, dir },
+  };
+  renderJira();
+  if (window.lucide) lucide.createIcons();
+}
+
+function useSavedJiraData() {
+  state.jira.allData = {
+    ...state.jira.allData,
+    mode: 'saved',
+    adHocStatus: 'idle',
+    adHocError: null,
+  };
+  renderJira();
+  if (window.lucide) lucide.createIcons();
+}
+
+function refreshJira() {
+  if (
+    state.jira.activeTab === 'all-data' &&
+    state.jira.allData.mode === 'ad-hoc' &&
+    state.jira.allData.adHocJql
+  ) {
+    runJiraAdHocSearch(state.jira.allData.adHocJql);
+    return;
+  }
+
+  loadJiraSections();
+}
+
+async function loadJiraSections() {
+  if (state.jira.status === 'loading') return;
+
+  state.jira = {
+    ...state.jira,
+    status: 'loading',
+    sections: [],
+    error: null,
+    loaded: false,
+    startedAt: Date.now(),
+  };
+  if (getView() === 'jira') renderJira();
+
+  try {
+    const result = await api('/api/jira/sections/search', { method: 'POST' });
+    if (result.error) {
+      state.jira = {
+        ...state.jira,
+        status: 'error',
+        sections: [],
+        error: result.error,
+        loaded: false,
+        startedAt: null,
+      };
+    } else {
+      state.jira = {
+        ...state.jira,
+        status: 'done',
+        sections: result.sections || [],
+        error: null,
+        loaded: true,
+        startedAt: null,
+        lastLoadedAt: Date.now(),
+      };
+    }
+  } catch (e) {
+    state.jira = {
+      ...state.jira,
+      status: 'error',
+      sections: [],
+      error: e.message,
+      loaded: false,
+      startedAt: null,
+    };
+  }
+
+  if (getView() === 'jira') renderJira();
+}
+
+async function runJiraAdHocSearch(jql) {
+  const trimmed = jql.trim();
+  if (!trimmed || state.jira.allData.adHocStatus === 'loading') return;
+
+  state.jira.allData = {
+    ...state.jira.allData,
+    mode: 'ad-hoc',
+    adHocJql: trimmed,
+    adHocStatus: 'loading',
+    adHocIssues: [],
+    adHocWarnings: [],
+    adHocError: null,
+  };
+  renderJira();
+
+  try {
+    const result = await apiPost('/api/jira/search', { jql: trimmed });
+    if (result.error) {
+      state.jira.allData = {
+        ...state.jira.allData,
+        adHocStatus: 'error',
+        adHocIssues: [],
+        adHocWarnings: [],
+        adHocError: result.error,
+      };
+    } else {
+      addJiraQueryToHistory(trimmed);
+      state.jira.allData = {
+        ...state.jira.allData,
+        adHocStatus: 'done',
+        adHocIssues: result.issues || [],
+        adHocWarnings: result.warnings || [],
+        adHocError: null,
+      };
+    }
+  } catch (e) {
+    state.jira.allData = {
+      ...state.jira.allData,
+      adHocStatus: 'error',
+      adHocIssues: [],
+      adHocWarnings: [],
+      adHocError: e.message,
+    };
+  }
+
+  renderJira();
+}
 
 function showEmptyState() {
   $view.innerHTML = `

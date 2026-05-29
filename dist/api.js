@@ -1,6 +1,6 @@
 import { parseBacklogFromString } from './parser.js';
 import { scoreTasks } from './scorer.js';
-import { checkAiAvailable, loadPrompt, tasksToCompactCsv, tasksToIdDescCsv, parseGroomResponse, runClaudeCollectRaw, } from './ai.js';
+import { checkAiAvailable, checkClaudeAvailable, checkCodexAvailable, loadPrompt, tasksToCompactCsv, tasksToIdDescCsv, parseGroomResponse, runClaudeCollectRaw, } from './ai.js';
 import { getCached, getLastCached, saveCache } from './cache.js';
 const LIST_CATEGORIES = {
     triage: { statuses: ['TRIAGE'], title: 'TRIAGE' },
@@ -106,6 +106,12 @@ function enrichWithScores(result, backlog) {
 }
 export function isAiAvailable() {
     return checkAiAvailable();
+}
+export function isClaudeAvailable() {
+    return checkClaudeAvailable();
+}
+export function isCodexAvailable() {
+    return checkCodexAvailable();
 }
 export async function apiAnalyze(backlog, ask, group, model) {
     const relevantTasks = backlog.tasks.filter((t) => t.id && t.description);

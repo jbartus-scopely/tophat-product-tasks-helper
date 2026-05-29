@@ -16,6 +16,7 @@ export async function apiPost(path, body, signal) {
 
 // ── Query History (localStorage) ─────────────────────────────
 const HISTORY_KEY = 'pth_query_history';
+export const JIRA_HISTORY_KEY = 'pth_jira_jql_history';
 const MAX_HISTORY = 30;
 
 function loadHistory() {
@@ -23,8 +24,17 @@ function loadHistory() {
   catch { return []; }
 }
 
+function loadStorageHistory(key) {
+  try { return JSON.parse(localStorage.getItem(key)) || []; }
+  catch { return []; }
+}
+
+function saveStorageHistory(key, entries) {
+  localStorage.setItem(key, JSON.stringify(entries.slice(0, MAX_HISTORY)));
+}
+
 function saveHistory(entries) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_HISTORY)));
+  saveStorageHistory(HISTORY_KEY, entries);
 }
 
 export function getQueryHistory() { return loadHistory(); }
@@ -52,6 +62,21 @@ export function toggleStarQuery(query) {
 
 export function removeQueryFromHistory(query) { saveHistory(loadHistory().filter(e => e.query !== query)); }
 export function clearQueryHistory() { localStorage.removeItem(HISTORY_KEY); }
+
+export function getJiraQueryHistory() {
+  return loadStorageHistory(JIRA_HISTORY_KEY);
+}
+
+export function addJiraQueryToHistory(query) {
+  const trimmed = query.trim();
+  if (!trimmed) return;
+  const entries = getJiraQueryHistory();
+  const existing = entries.findIndex(e => e.query === trimmed);
+  if (existing !== -1) entries[existing].usedAt = Date.now();
+  else entries.unshift({ query: trimmed, usedAt: Date.now() });
+  entries.sort((a, b) => b.usedAt - a.usedAt);
+  saveStorageHistory(JIRA_HISTORY_KEY, entries);
+}
 
 // ── AI Models ────────────────────────────────────────────────
 let aiModels = [];

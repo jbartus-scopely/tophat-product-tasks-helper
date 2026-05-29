@@ -22,7 +22,13 @@ import {
   apiPrioritize,
   apiFindDuplicates,
 } from './api.js';
-import type { BacklogData } from './types.js';
+import { loadJiraSavedSectionsConfig } from './jiraConfig.js';
+import { searchJiraIssues, type JiraIssueSearchParams, type JiraIssueSearchResult } from './jiraSearch.js';
+import type {
+  BacklogData,
+  JiraConfigError,
+  JiraSavedSectionsConfigResult,
+} from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -39,6 +45,14 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 let backlog: BacklogData | null = null;
+
+type JiraConfigLoader = () => JiraSavedSectionsConfigResult;
+type JiraIssueSearcher = (params: JiraIssueSearchParams) => Promise<JiraIssueSearchResult>;
+
+export interface ServerAppOptions {
+  jiraConfigLoader?: JiraConfigLoader;
+  jiraIssueSearcher?: JiraIssueSearcher;
+}
 
 function timestamp(): string {
   return new Date().toLocaleTimeString('en-GB', { hour12: false });
@@ -80,10 +94,10 @@ function requireBacklog(): BacklogData {
   return backlog;
 }
 
-export function startServer(port: number, filePath?: string): void {
-  tryLoadDefaultCsv(filePath);
-
+export function createApp(options: ServerAppOptions = {}): Hono {
   const app = new Hono();
+  const jiraConfigLoader = options.jiraConfigLoader ?? loadJiraSavedSectionsConfig;
+  const jiraIssueSearcher = options.jiraIssueSearcher ?? searchJiraIssues;
 
   // ── Static files ─────────────────────────────────────────
   app.get('/', (c) => {
@@ -185,6 +199,68 @@ export function startServer(port: number, filePath?: string): void {
     } catch (e: any) {
       return c.json({ error: e.message }, 400);
     }
+  });
+
+  // ── API: Jira ────────────────────────────────────────────
+  app.get('/api/jira/sections', (c) => {
+    const result = jiraConfigLoader();
+    if (!result.ok) return c.json(jiraConfigErrorResponse(result.error), 400);
+
+    return c.json({ sections: result.sections });
+  });
+
+  app.post('/api/jira/sections/search', async (c) => {
+    const config = jiraConfigLoader();
+    if (!config.ok) return c.json(jiraConfigErrorResponse(config.error), 400);
+
+    const sections = [];
+    for (const section of config.sections) {
+      const result = await jiraIssueSearcher({
+        jql: section.jql,
+        sourceSectionId: section.id,
+        sourceSectionTitle: section.title,
+      });
+
+      if (result.ok) {
+        sections.push({
+          ...section,
+          issues: result.issues,
+          warnings: result.warnings,
+        });
+      } else {
+        sections.push({
+          ...section,
+          issues: [],
+          warnings: [],
+          error: routeErrorMessage(result.error),
+        });
+      }
+    }
+
+    return c.json({ sections });
+  });
+
+  app.post('/api/jira/search', async (c) => {
+    const body = await parseJsonBody(c.req.raw);
+    if (!body.ok) return c.json({ error: body.error }, 400);
+
+    const jql = typeof body.value.jql === 'string' ? body.value.jql.trim() : '';
+    if (!jql) return c.json({ error: 'Missing "jql" field.' }, 400);
+
+    const result = await jiraIssueSearcher({
+      jql,
+      sourceSectionId: 'ad-hoc',
+      sourceSectionTitle: 'Ad hoc JQL',
+    });
+
+    if (!result.ok) {
+      return c.json(routeErrorResponse(result.error), routeErrorStatus(result.error));
+    }
+
+    return c.json({
+      issues: result.issues,
+      warnings: result.warnings,
+    });
   });
 
   // ── API: AI ──────────────────────────────────────────────
@@ -289,6 +365,14 @@ export function startServer(port: number, filePath?: string): void {
     }
   });
 
+  return app;
+}
+
+export function startServer(port: number, filePath?: string): void {
+  tryLoadDefaultCsv(filePath);
+
+  const app = createApp();
+
   serve({ fetch: app.fetch, port }, () => {
     const loaded = backlog ? `${backlog.tasks.length} tasks loaded` : 'no CSV loaded';
     console.log(`\n  PTH Web UI running at http://localhost:${port}`);
@@ -305,4 +389,50 @@ if (isMain) {
   await import('dotenv/config');
   const port = parseInt(process.env.PTH_PORT || '3000');
   startServer(port);
+}
+
+function jiraConfigErrorResponse(error: JiraConfigError): { error: string; details?: string[] } {
+  const response: { error: string; details?: string[] } = { error: sanitizeRouteText(error.message) };
+  if (error.details?.length) response.details = error.details.map(sanitizeRouteText);
+  return response;
+}
+
+function routeErrorResponse(error: { message: string; details?: string[] }): { error: string; details?: string[] } {
+  const response: { error: string; details?: string[] } = { error: routeErrorMessage(error) };
+  if (error.details?.length) response.details = error.details.map(sanitizeRouteText);
+  return response;
+}
+
+function routeErrorMessage(error: { message: string }): string {
+  return sanitizeRouteText(error.message || 'Jira request failed.');
+}
+
+function routeErrorStatus(error: { code?: string; status?: number }): 400 | 502 | 500 {
+  if (error.status && error.status >= 400 && error.status < 500) return 400;
+  if (error.status && error.status >= 500) return 502;
+  if (error.code?.includes('env') || error.code?.includes('invalid')) return 400;
+  return 500;
+}
+
+async function parseJsonBody(request: Request): Promise<
+  | { ok: true; value: Record<string, unknown> }
+  | { ok: false; error: string }
+> {
+  try {
+    const value = await request.json();
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      return { ok: true, value: value as Record<string, unknown> };
+    }
+    return { ok: false, error: 'Request body must be a JSON object.' };
+  } catch {
+    return { ok: false, error: 'Request body must be valid JSON.' };
+  }
+}
+
+function sanitizeRouteText(value: string): string {
+  let sanitized = value;
+  for (const secret of [process.env.JIRA_API_TOKEN, process.env.JIRA_EMAIL].filter(Boolean)) {
+    sanitized = sanitized.split(secret as string).join('[redacted]');
+  }
+  return sanitized.replace(/authorization/gi, '[redacted]');
 }

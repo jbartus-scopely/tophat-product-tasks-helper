@@ -1,0 +1,9 @@
+{
+  "sections": [
+    {
+      "id": "base-stories",
+      "title": "Base stories",
+      "jql": "parent in (TOP-105791, TOP-81049, TOP-94588, TOP-98359, TOP-104579, TOP-112963) and type = Story"
+    }
+  ]
+}

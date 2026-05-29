@@ -23,6 +23,8 @@ export declare function filterTasks(backlog: BacklogData, category: string, grou
 export declare function getScoreMap(backlog: BacklogData): Record<string, number>;
 export declare function getTask(backlog: BacklogData, id: string): Task | undefined;
 export declare function isAiAvailable(): boolean;
+export declare function isClaudeAvailable(): boolean;
+export declare function isCodexAvailable(): boolean;
 export declare function apiAnalyze(backlog: BacklogData, ask: string, group?: string, model?: string): Promise<GroomResult | null>;
 export declare function apiGroom(backlog: BacklogData, group?: string, cache?: boolean, model?: string): Promise<GroomResult | null>;
 export declare function apiPrioritize(backlog: BacklogData, group?: string, cache?: boolean, model?: string): Promise<GroomResult | null>;
