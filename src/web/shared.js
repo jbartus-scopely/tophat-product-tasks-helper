@@ -19,6 +19,7 @@ const HISTORY_KEY = 'pth_query_history';
 const JIRA_DASHBOARD_VERSIONS_KEY = 'pth_jira_dashboard_versions';
 const JIRA_ALL_DATA_FILTERS_KEY = 'pth_jira_all_data_filters';
 const MAX_HISTORY = 30;
+const JIRA_ALL_DATA_GROUP_BY_VALUES = ['none', 'status', 'priority', 'fixVersion', 'pod'];
 
 function loadHistory() {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
@@ -62,7 +63,12 @@ function normalizeJiraAllDataFilters(value) {
     priority: normalizeStringArray(value?.priority),
     fixVersion: normalizeStringArray(value?.fixVersion),
     pod: normalizeStringArray(value?.pod),
+    groupBy: normalizeJiraAllDataGroupBy(value?.groupBy),
   };
+}
+
+function normalizeJiraAllDataGroupBy(value) {
+  return JIRA_ALL_DATA_GROUP_BY_VALUES.includes(value) ? value : 'none';
 }
 
 function saveHistory(entries) {

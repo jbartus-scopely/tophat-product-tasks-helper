@@ -694,6 +694,16 @@ const JIRA_DASHBOARD_TABS = [
 
 const EMPTY_VALUE = '__empty__';
 const NO_FIX_VERSION_LABEL = 'No fix version';
+const NO_STATUS_LABEL = 'No status';
+const NO_PRIORITY_LABEL = 'No priority';
+const NO_POD_LABEL = 'No pod';
+const JIRA_ALL_DATA_GROUP_BY_OPTIONS = [
+  { value: 'none', label: 'None' },
+  { value: 'status', label: 'Status' },
+  { value: 'priority', label: 'Priority' },
+  { value: 'fixVersion', label: 'Fix version' },
+  { value: 'pod', label: 'Pod' },
+];
 const JIRA_PRIORITY_RANK = {
   blocker: 0,
   critical: 0,
@@ -944,6 +954,45 @@ function filteredSortedJiraIssues(issues, allData) {
   });
 }
 
+function currentAllDataGroupBy(allData) {
+  const groupBy = allData.filters?.groupBy || 'none';
+  return JIRA_ALL_DATA_GROUP_BY_OPTIONS.some(option => option.value === groupBy) ? groupBy : 'none';
+}
+
+function groupAllDataIssues(issues, groupBy) {
+  const groups = new Map();
+  for (const issue of issues) {
+    for (const label of groupLabelsForIssue(issue, groupBy)) {
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(issue);
+    }
+  }
+
+  return [...groups.entries()].sort(([a], [b]) => compareAllDataGroupLabels(a, b, groupBy));
+}
+
+function groupLabelsForIssue(issue, groupBy) {
+  if (groupBy === 'status') return [issue.status || NO_STATUS_LABEL];
+  if (groupBy === 'priority') return [issue.priority || NO_PRIORITY_LABEL];
+  if (groupBy === 'fixVersion') {
+    const versions = jiraFixVersions(issue);
+    return versions.length > 0 ? versions : [NO_FIX_VERSION_LABEL];
+  }
+  if (groupBy === 'pod') return [issue.pod || NO_POD_LABEL];
+  return [];
+}
+
+function compareAllDataGroupLabels(a, b, groupBy) {
+  if (groupBy === 'priority') {
+    const ar = jiraPriorityRank(a === NO_PRIORITY_LABEL ? '' : a);
+    const br = jiraPriorityRank(b === NO_PRIORITY_LABEL ? '' : b);
+    if (ar !== br) return ar - br;
+  }
+  if (a.startsWith('No ') && !b.startsWith('No ')) return 1;
+  if (!a.startsWith('No ') && b.startsWith('No ')) return -1;
+  return a.localeCompare(b);
+}
+
 function jiraEmptyHtml(title, body) {
   return `<div class="empty-state jira-empty">
     <i data-lucide="radar" style="width:64px;height:64px;opacity:0.5;margin-bottom:16px"></i>
@@ -1172,7 +1221,33 @@ function jiraFilterControlsHtml(baseIssues, allData) {
   html += multiFilterSelectHtml('jira-filter-priority', 'Priority', priorities, filters.priority || []);
   html += multiFilterSelectHtml('jira-filter-fix-version', 'Fix version', fixVersions, filters.fixVersion || [], true);
   html += multiFilterSelectHtml('jira-filter-pod', 'Pod', pods, filters.pod || [], true);
+  html += jiraGroupBySelectHtml(currentAllDataGroupBy(allData));
   html += `<div class="ai-form-field jira-search-field"><label>Search</label><input type="text" id="jira-filter-search" value="${esc(filters.search || '')}"></div>`;
+  html += '</div>';
+  return html;
+}
+
+function jiraGroupBySelectHtml(value) {
+  let html = '<div class="ai-form-field jira-group-by-field"><label>Group by</label><select id="jira-group-by">';
+  for (const option of JIRA_ALL_DATA_GROUP_BY_OPTIONS) {
+    html += `<option value="${esc(option.value)}"${option.value === value ? ' selected' : ''}>${esc(option.label)}</option>`;
+  }
+  html += '</select></div>';
+  return html;
+}
+
+function jiraAllDataTablesHtml(issues, allData) {
+  const groupBy = currentAllDataGroupBy(allData);
+  const tableOptions = { sortable: true, sort: allData.sort };
+  if (groupBy === 'none') return jiraIssueTableHtml(issues, tableOptions);
+
+  const groups = groupAllDataIssues(issues, groupBy);
+  if (groups.length === 0) return jiraIssueTableHtml(issues, tableOptions);
+
+  let html = '<div class="jira-all-data-groups">';
+  for (const [label, rows] of groups) {
+    html += `<div class="jira-group"><div class="jira-group-title">${esc(label)} <span>${rows.length}</span></div>${jiraIssueTableHtml(rows, tableOptions)}</div>`;
+  }
   html += '</div>';
   return html;
 }
@@ -1188,7 +1263,7 @@ function jiraAllDataShellHtml(jira, loaded) {
   let html = '';
 
   html += jiraFilterControlsHtml(baseIssues, allData);
-  html += jiraIssueTableHtml(visibleIssues, { sortable: true, sort: allData.sort });
+  html += jiraAllDataTablesHtml(visibleIssues, allData);
   html += `<div class="table-footer">Showing ${visibleIssues.length} of ${baseIssues.length} Jira issues</div>`;
 
   return html;
@@ -1327,6 +1402,7 @@ export function renderJiraView($el, state, actions = {}) {
     }, 0);
   }
   document.getElementById('jira-filter-search')?.addEventListener('input', (e) => actions.onFilterChange?.('search', e.target.value));
+  document.getElementById('jira-group-by')?.addEventListener('change', (e) => actions.onFilterChange?.('groupBy', e.target.value));
   $el.querySelectorAll('[data-jira-sort]').forEach(header => {
     header.addEventListener('click', () => actions.onSortChange?.(header.dataset.jiraSort));
   });

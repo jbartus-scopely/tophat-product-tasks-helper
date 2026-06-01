@@ -77,17 +77,24 @@ test('Jira All Data view provides combined saved data, persisted multi-select fi
     assert.match(components, /return av\.localeCompare\(bv\)/);
     assert.match(components, /jira-filter-fix-version/);
     assert.match(components, /jira-filter-pod/);
+    assert.match(components, /id="jira-group-by"/);
+    assert.match(components, /JIRA_ALL_DATA_GROUP_BY_OPTIONS/);
+    assert.match(components, /groupAllDataIssues/);
+    assert.match(components, /currentAllDataGroupBy/);
+    assert.match(components, /jiraAllDataTablesHtml/);
     assert.match(components, /data-jira-multi-dropdown/);
     assert.match(components, /data-jira-multi-input/);
     assert.match(components, /type="checkbox"/);
     assert.match(components, /checkedMultiValues/);
     assert.match(components, /jira-filter-search/);
+    assert.match(components, /onFilterChange\?\.\('groupBy'/);
     assert.match(components, /data-jira-sort/);
     assert.match(components, /target="_blank"/);
     assert.match(app, /JIRA_FOCUSABLE_INPUT_IDS/);
     assert.match(app, /preserveFocus: name === 'search'/);
     assert.match(app, /getJiraAllDataFilters/);
     assert.match(app, /saveJiraAllDataFilters/);
+    assert.match(shared, /groupBy: normalizeJiraAllDataGroupBy/);
     assert.match(shared, /pth_jira_all_data_filters/);
 });
 test('Jira All Data view omits ad hoc JQL controls', () => {

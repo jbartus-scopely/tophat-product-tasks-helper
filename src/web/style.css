@@ -1500,8 +1500,15 @@ body {
 
 .jira-filter-field { flex: 0 0 160px; }
 .jira-multi-field { position: relative; }
+.jira-group-by-field { flex: 0 0 150px; }
 .jira-search-field { flex: 1 1 220px; }
 .jira-filter-controls { align-items: end; flex-wrap: wrap; }
+
+.jira-all-data-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
 .jira-multi-dropdown {
   position: relative;
