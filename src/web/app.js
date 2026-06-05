@@ -378,6 +378,7 @@ function setJiraFilter(name, value) {
     priority: 'jira-filter-priority',
     fixVersion: 'jira-filter-fix-version',
     pod: 'jira-filter-pod',
+    label: 'jira-filter-label',
   };
   const filters = {
     ...state.jira.allData.filters,

@@ -30,6 +30,7 @@ test('executes raw JQL search with requested fields and normalizes issue output'
                             status: { name: 'To Do' },
                             priority: { name: 'High' },
                             fixVersions: [{ name: '1.2.0' }],
+                            labels: ['release-watch', 'dashboard'],
                             updated: '2026-05-28T10:15:00.000+0000',
                             customfield_12345: { value: 'Pod31' },
                         },
@@ -47,7 +48,7 @@ test('executes raw JQL search with requested fields and normalizes issue output'
     assert.deepEqual(searchRequests[0].body, {
         jql: 'project = EXAMPLE ORDER BY updated DESC',
         maxResults: 100,
-        fields: ['summary', 'issuetype', 'status', 'priority', 'fixVersions', 'updated', 'customfield_12345'],
+        fields: ['summary', 'issuetype', 'status', 'priority', 'fixVersions', 'labels', 'updated', 'customfield_12345'],
     });
     assert.deepEqual(result.issues, [
         {
@@ -58,6 +59,7 @@ test('executes raw JQL search with requested fields and normalizes issue output'
             status: 'To Do',
             priority: 'High',
             fixVersions: ['1.2.0'],
+            labels: ['release-watch', 'dashboard'],
             updated: '2026-05-28T10:15:00.000+0000',
             pod: 'Pod31',
             sourceSectionId: 'coming',
@@ -123,7 +125,7 @@ test('returns missing Pod warning and searches without a Pod field when discover
     assert.equal(result.ok, true);
     if (!result.ok)
         assert.fail('Expected missing Pod to be non-fatal.');
-    assert.deepEqual(searchRequests[0].body.fields, ['summary', 'issuetype', 'status', 'priority', 'fixVersions', 'updated']);
+    assert.deepEqual(searchRequests[0].body.fields, ['summary', 'issuetype', 'status', 'priority', 'fixVersions', 'labels', 'updated']);
     assert.equal(result.issues[0].pod, '');
     assert.deepEqual(result.warnings, [
         {
@@ -154,6 +156,7 @@ test('normalizes null or unexpected Jira field values without throwing', async (
                             status: null,
                             priority: 123,
                             fixVersions: { name: 'not-an-array' },
+                            labels: [123, null],
                             updated: [],
                             customfield_12345: { unexpected: 'shape' },
                         },
@@ -173,6 +176,7 @@ test('normalizes null or unexpected Jira field values without throwing', async (
         status: '',
         priority: '',
         fixVersions: [],
+        labels: [],
         updated: '',
         pod: '',
         sourceSectionId: 'defensive',
@@ -200,6 +204,7 @@ function makeIssues(startAt, count) {
                 status: { name: 'Open' },
                 priority: { name: 'Medium' },
                 fixVersions: [],
+                labels: [],
                 updated: '2026-05-28T10:15:00.000+0000',
                 customfield_12345: 'Pod31',
             },

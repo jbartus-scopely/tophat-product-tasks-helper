@@ -74,6 +74,7 @@ export interface JiraNormalizedIssue {
   status: string;
   priority: string;
   fixVersions: string[];
+  labels: string[];
   updated: string;
   pod: string;
   sourceSectionId: string;

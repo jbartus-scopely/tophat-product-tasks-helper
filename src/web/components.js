@@ -697,12 +697,22 @@ const NO_FIX_VERSION_LABEL = 'No fix version';
 const NO_STATUS_LABEL = 'No status';
 const NO_PRIORITY_LABEL = 'No priority';
 const NO_POD_LABEL = 'No pod';
+const NO_LABEL_LABEL = 'No label';
+const JIRA_VISIBLE_LABELS = [
+  'BetterCasual',
+  'BetterSocial',
+  'Other',
+  'ReturnExperience',
+  'TimeToRoll',
+  'UXFoundations',
+];
 const JIRA_ALL_DATA_GROUP_BY_OPTIONS = [
   { value: 'none', label: 'None' },
   { value: 'status', label: 'Status' },
   { value: 'priority', label: 'Priority' },
   { value: 'fixVersion', label: 'Fix version' },
   { value: 'pod', label: 'Pod' },
+  { value: 'labels', label: 'Label' },
 ];
 const JIRA_PRIORITY_RANK = {
   blocker: 0,
@@ -789,14 +799,27 @@ function jiraKeyCell(issue) {
   return `<a class="jira-key" href="${esc(issue.url)}" target="_blank" rel="noopener noreferrer">${esc(key)}</a>`;
 }
 
+function jiraVisibleLabels(labels) {
+  if (!Array.isArray(labels)) return [];
+  const normalized = new Set(labels.map(label => String(label || '').trim().toLowerCase()).filter(Boolean));
+  return JIRA_VISIBLE_LABELS.filter(label => normalized.has(label.toLowerCase()));
+}
+
+function jiraLabelsHtml(labels) {
+  const values = jiraVisibleLabels(labels);
+  if (values.length === 0) return '<span class="jira-labels-empty">--</span>';
+  return `<div class="jira-labels">${values.map(label => `<span class="jira-label">${esc(label)}</span>`).join('')}</div>`;
+}
+
 function jiraIssueRows(issues) {
   if (!issues.length) {
-    return '<tr><td colspan="7" class="jira-empty-cell">No issues found.</td></tr>';
+    return '<tr><td colspan="8" class="jira-empty-cell">No issues found.</td></tr>';
   }
 
   return issues.map(issue => `<tr data-jira-key="${esc(issue.key || '')}">
     <td>${jiraKeyCell(issue)}</td>
     <td class="col-desc">${esc(issue.summary || '--')}</td>
+    <td class="col-labels">${jiraLabelsHtml(issue.labels)}</td>
     <td>${statusBadge(issue.status)}</td>
     <td>${jiraPriorityBadge(issue.priority)}</td>
     <td>${esc(jiraFixVersionLabel(issue))}</td>
@@ -815,6 +838,7 @@ function jiraIssueTableHtml(issues, opts = {}) {
   let html = '<table class="data-table jira-issue-table"><thead><tr>';
   html += opts.sortable ? sortHeader('Key', 'key', sort) : '<th>Key</th>';
   html += '<th>Summary</th>';
+  html += opts.sortable ? sortHeader('Labels', 'labels', sort) : '<th>Labels</th>';
   html += opts.sortable ? sortHeader('Status', 'status', sort) : '<th>Status</th>';
   html += opts.sortable ? sortHeader('Priority', 'priority', sort) : '<th>Priority</th>';
   html += opts.sortable ? sortHeader('Fix version', 'fixVersion', sort) : '<th>Fix version</th>';
@@ -874,6 +898,7 @@ function issueMatchesFilter(issue, filters) {
   const priorities = selectedValues(filters.priority);
   const selectedFixVersions = selectedValues(filters.fixVersion);
   const selectedPods = selectedValues(filters.pod);
+  const selectedLabels = selectedValues(filters.label);
 
   if (statuses.length > 0 && !statuses.includes(issue.status || '')) return false;
   if (priorities.length > 0 && !priorities.includes(issue.priority || '')) return false;
@@ -893,9 +918,12 @@ function issueMatchesFilter(issue, filters) {
     if (pod && !selectedPods.includes(pod)) return false;
   }
 
+  const labels = jiraVisibleLabels(issue.labels);
+  if (selectedLabels.length > 0 && !labels.some(label => selectedLabels.includes(label))) return false;
+
   const search = (filters.search || '').trim().toLowerCase();
   if (search) {
-    const haystack = `${issue.key || ''} ${issue.summary || ''}`.toLowerCase();
+    const haystack = `${issue.key || ''} ${issue.summary || ''} ${labels.join(' ')}`.toLowerCase();
     if (!haystack.includes(search)) return false;
   }
 
@@ -917,6 +945,11 @@ function compareJiraIssues(a, b, field) {
     const bv = jiraFixVersions(b).join(', ');
     return av.localeCompare(bv);
   }
+  if (field === 'labels') {
+    const av = jiraVisibleLabels(a.labels).join(', ');
+    const bv = jiraVisibleLabels(b.labels).join(', ');
+    return av.localeCompare(bv);
+  }
   const av = field === 'key' ? a.key : field === 'status' ? a.status : field === 'pod' ? a.pod : '';
   const bv = field === 'key' ? b.key : field === 'status' ? b.status : field === 'pod' ? b.pod : '';
   return (av || '').localeCompare(bv || '');
@@ -927,6 +960,7 @@ function effectiveJiraFilters(issues, filters) {
   const priorities = new Set(issues.map(issue => issue.priority || '').filter(Boolean));
   const fixVersions = new Set(issues.flatMap(issue => jiraFixVersions(issue)));
   const pods = new Set(issues.map(issue => issue.pod || '').filter(Boolean));
+  const labels = new Set(issues.flatMap(issue => jiraVisibleLabels(issue.labels)));
   const hasEmptyFixVersion = issues.some(issue => jiraFixVersions(issue).length === 0);
   const hasEmptyPod = issues.some(issue => !issue.pod);
 
@@ -936,6 +970,7 @@ function effectiveJiraFilters(issues, filters) {
     priority: selectedValues(filters.priority).filter(value => priorities.has(value)),
     fixVersion: selectedValues(filters.fixVersion).filter(value => fixVersions.has(value) || (value === EMPTY_VALUE && hasEmptyFixVersion)),
     pod: selectedValues(filters.pod).filter(value => pods.has(value) || (value === EMPTY_VALUE && hasEmptyPod)),
+    label: selectedValues(filters.label).filter(value => labels.has(value)),
   };
 }
 
@@ -979,6 +1014,10 @@ function groupLabelsForIssue(issue, groupBy) {
     return versions.length > 0 ? versions : [NO_FIX_VERSION_LABEL];
   }
   if (groupBy === 'pod') return [issue.pod || NO_POD_LABEL];
+  if (groupBy === 'labels') {
+    const labels = jiraVisibleLabels(issue.labels);
+    return labels.length > 0 ? labels : [NO_LABEL_LABEL];
+  }
   return [];
 }
 
@@ -1215,12 +1254,14 @@ function jiraFilterControlsHtml(baseIssues, allData) {
   const priorities = uniqueSorted(baseIssues.map(issue => issue.priority || ''));
   const fixVersions = uniqueSorted(baseIssues.flatMap(issue => jiraFixVersions(issue)));
   const pods = uniqueSorted(baseIssues.map(issue => issue.pod || ''));
+  const labels = uniqueSorted(baseIssues.flatMap(issue => jiraVisibleLabels(issue.labels)));
 
   let html = '<div class="table-controls jira-filter-controls">';
   html += multiFilterSelectHtml('jira-filter-status', 'Status', statuses, filters.status || []);
   html += multiFilterSelectHtml('jira-filter-priority', 'Priority', priorities, filters.priority || []);
   html += multiFilterSelectHtml('jira-filter-fix-version', 'Fix version', fixVersions, filters.fixVersion || [], true);
   html += multiFilterSelectHtml('jira-filter-pod', 'Pod', pods, filters.pod || [], true);
+  html += multiFilterSelectHtml('jira-filter-label', 'Label', labels, filters.label || []);
   html += jiraGroupBySelectHtml(currentAllDataGroupBy(allData));
   html += `<div class="ai-form-field jira-search-field"><label>Search</label><input type="text" id="jira-filter-search" value="${esc(filters.search || '')}"></div>`;
   html += '</div>';
@@ -1394,6 +1435,7 @@ export function renderJiraView($el, state, actions = {}) {
       if (id === 'jira-filter-priority') actions.onFilterChange?.('priority', values);
       if (id === 'jira-filter-fix-version') actions.onFilterChange?.('fixVersion', values);
       if (id === 'jira-filter-pod') actions.onFilterChange?.('pod', values);
+      if (id === 'jira-filter-label') actions.onFilterChange?.('label', values);
     });
   });
   if (jira.openMultiDropdown) {

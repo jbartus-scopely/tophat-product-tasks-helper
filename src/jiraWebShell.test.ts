@@ -88,9 +88,12 @@ test('Jira All Data view provides combined saved data, persisted multi-select fi
   assert.match(components, /return av\.localeCompare\(bv\)/);
   assert.match(components, /jira-filter-fix-version/);
   assert.match(components, /jira-filter-pod/);
+  assert.match(components, /jira-filter-label/);
   assert.match(components, /id="jira-group-by"/);
   assert.match(components, /JIRA_ALL_DATA_GROUP_BY_OPTIONS/);
+  assert.match(components, /value: 'labels', label: 'Label'/);
   assert.match(components, /groupAllDataIssues/);
+  assert.match(components, /NO_LABEL_LABEL/);
   assert.match(components, /currentAllDataGroupBy/);
   assert.match(components, /jiraAllDataTablesHtml/);
   assert.match(components, /data-jira-multi-dropdown/);
@@ -99,13 +102,25 @@ test('Jira All Data view provides combined saved data, persisted multi-select fi
   assert.match(components, /checkedMultiValues/);
   assert.match(components, /jira-filter-search/);
   assert.match(components, /onFilterChange\?\.\('groupBy'/);
+  assert.match(components, /JIRA_VISIBLE_LABELS/);
+  assert.match(components, /BetterCasual/);
+  assert.match(components, /UXFoundations/);
+  assert.match(components, /jiraVisibleLabels/);
+  assert.match(components, /jiraLabelsHtml/);
+  assert.match(components, /sortHeader\('Labels', 'labels'/);
+  assert.match(components, /onFilterChange\?\.\('label'/);
+  assert.match(components, /jira-labels/);
+  assert.match(components, /issue\.labels/);
   assert.match(components, /data-jira-sort/);
   assert.match(components, /target="_blank"/);
   assert.match(app, /JIRA_FOCUSABLE_INPUT_IDS/);
+  assert.match(app, /label: 'jira-filter-label'/);
   assert.match(app, /preserveFocus: name === 'search'/);
   assert.match(app, /getJiraAllDataFilters/);
   assert.match(app, /saveJiraAllDataFilters/);
+  assert.match(shared, /label: normalizeStringArray\(value\?\.label\)/);
   assert.match(shared, /groupBy: normalizeJiraAllDataGroupBy/);
+  assert.match(shared, /'labels'/);
   assert.match(shared, /pth_jira_all_data_filters/);
 });
 
