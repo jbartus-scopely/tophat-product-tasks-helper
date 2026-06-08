@@ -10,6 +10,8 @@ import {
   saveCsvDashboardFilters,
   getCsvAllDataFilters,
   saveCsvAllDataFilters,
+  getCsvLists,
+  saveCsvLists,
 } from './shared.js';
 import { renderJiraView, renderCsvDashboardView, renderCsvAllDataView } from './components.js';
 
@@ -23,6 +25,13 @@ let state = {
     data: null,
     uploadError: null,
     openMultiDropdown: null,
+    lists: getCsvLists(),
+    listEdit: {
+      active: false,
+      selectedIds: [],
+      targetListId: '',
+      newListName: '',
+    },
     dashboard: {
       activeView: 'active',
       filters: getCsvDashboardFilters(),
@@ -73,6 +82,7 @@ const $title = document.getElementById('page-title');
 const $backlogBadge = document.getElementById('backlog-badge');
 const $csvInput = document.getElementById('csv-input');
 const $dropZone = document.getElementById('drop-zone');
+const $csvListNav = document.getElementById('csv-list-nav');
 
 const VIEW_TITLES = {
   'csv-dashboard': 'CSV Dashboard',
@@ -83,11 +93,13 @@ const VIEW_TITLES = {
 
 const CSV_VIEWS = ['csv-dashboard', 'csv-all-data'];
 const JIRA_VIEWS = ['jira-dashboard', 'jira-all-data'];
+const CSV_LIST_VIEW_PREFIX = 'csv-list:';
 const JIRA_FOCUSABLE_INPUT_IDS = new Set(['jira-dashboard-search', 'jira-filter-search']);
-const CSV_FOCUSABLE_INPUT_IDS = new Set(['csv-dashboard-search', 'csv-filter-search']);
+const CSV_FOCUSABLE_INPUT_IDS = new Set(['csv-dashboard-search', 'csv-filter-search', 'csv-list-new-name']);
 
 // ── Init ─────────────────────────────────────────────────────
 async function init() {
+  renderCsvListNav();
   const storedCsv = getStoredCsvData();
   if (storedCsv) {
     applyCsvData(storedCsv);
@@ -181,11 +193,38 @@ function normalizeView(view) {
 }
 
 function isCsvView(view) {
-  return CSV_VIEWS.includes(view);
+  return CSV_VIEWS.includes(view) || isCsvListView(view);
 }
 
 function isJiraView(view) {
   return JIRA_VIEWS.includes(view);
+}
+
+function isCsvListView(view) {
+  return view.startsWith(CSV_LIST_VIEW_PREFIX);
+}
+
+function csvListIdFromView(view) {
+  return isCsvListView(view) ? decodeURIComponent(view.slice(CSV_LIST_VIEW_PREFIX.length)) : '';
+}
+
+function csvListHash(listId) {
+  return `#${CSV_LIST_VIEW_PREFIX}${encodeURIComponent(listId)}`;
+}
+
+function csvListById(listId) {
+  return state.csv.lists.find(list => list.id === listId) || null;
+}
+
+function renderCsvListNav() {
+  if (!$csvListNav) return;
+  const lists = state.csv?.lists || [];
+  $csvListNav.innerHTML = lists.map(list => `
+    <a href="${csvListHash(list.id)}" class="nav-item csv-list-nav-item" data-view="csv-list" data-list-id="${escapeHtml(list.id)}" title="${escapeHtml(list.name)}">
+      <i data-lucide="list-checks" class="nav-icon"></i> <span>${escapeHtml(list.name)}</span>
+    </a>
+  `).join('');
+  if (window.lucide) lucide.createIcons();
 }
 
 function jiraTabForView(view) {
@@ -194,12 +233,19 @@ function jiraTabForView(view) {
 
 function route() {
   const view = normalizeView(getView());
+  renderCsvListNav();
 
   document.querySelectorAll('.nav-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.view === view);
+    const isActiveList = isCsvListView(view) && el.dataset.listId === csvListIdFromView(view);
+    el.classList.toggle('active', el.dataset.view === view || isActiveList);
   });
 
-  $title.textContent = VIEW_TITLES[view] || 'Dashboard';
+  if (isCsvListView(view)) {
+    const list = csvListById(csvListIdFromView(view));
+    $title.textContent = list ? list.name : 'CSV List';
+  } else {
+    $title.textContent = VIEW_TITLES[view] || 'Dashboard';
+  }
 
   if (isJiraView(view)) {
     state.jira.activeTab = jiraTabForView(view);
@@ -229,6 +275,10 @@ function renderCsvView(view) {
     renderCsvDashboard();
     return;
   }
+  if (isCsvListView(view)) {
+    renderCsvList(csvListIdFromView(view));
+    return;
+  }
   renderCsvAllData();
 }
 
@@ -240,6 +290,51 @@ function renderCsvAllData(options = {}) {
     onSortChange: setCsvAllDataSort,
     onMultiDropdownToggle: toggleCsvMultiDropdown,
     onMultiDropdownClose: closeCsvMultiDropdown,
+    onListEditToggle: toggleCsvListEditMode,
+    onListSelectionToggle: toggleCsvListSelection,
+    onListSelectVisible: setCsvVisibleSelection,
+    onListSelectionClear: clearCsvListSelection,
+    onListTargetChange: setCsvListTarget,
+    onListNameChange: setCsvNewListName,
+    onListCreate: createCsvListFromSelection,
+    onListAppend: appendSelectionToCsvList,
+    onListImport: importCsvList,
+  });
+  restoreCsvFocus(focusSnapshot);
+  restoreCsvDropdownScroll(dropdownScrollSnapshot);
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderCsvList(listId, options = {}) {
+  const list = csvListById(listId);
+  if (!list) {
+    location.hash = '#csv-all-data';
+    return;
+  }
+  const focusSnapshot = options.preserveFocus ? getCsvFocusSnapshot() : null;
+  const dropdownScrollSnapshot = options.preserveDropdownScroll ? getCsvDropdownScrollSnapshot() : null;
+  renderCsvAllDataView($view, state, {
+    onFilterChange: setCsvAllDataFilter,
+    onSortChange: setCsvAllDataSort,
+    onMultiDropdownToggle: toggleCsvMultiDropdown,
+    onMultiDropdownClose: closeCsvMultiDropdown,
+    onListEditToggle: toggleCsvListEditMode,
+    onListSelectionToggle: toggleCsvListSelection,
+    onListSelectVisible: setCsvVisibleSelection,
+    onListSelectionClear: clearCsvListSelection,
+    onListTargetChange: setCsvListTarget,
+    onListNameChange: setCsvNewListName,
+    onListCreate: createCsvListFromSelection,
+    onListAppend: appendSelectionToCsvList,
+    onListRemoveSelected: removeSelectedFromCsvList,
+    onListRename: renameCsvList,
+    onListDelete: deleteCsvList,
+    onListExport: exportCsvList,
+    onListImport: importCsvList,
+  }, {
+    scope: 'list',
+    list,
+    tasks: csvTasksForList(list),
   });
   restoreCsvFocus(focusSnapshot);
   restoreCsvDropdownScroll(dropdownScrollSnapshot);
@@ -249,7 +344,241 @@ function renderCsvAllData(options = {}) {
 function renderActiveCsvView(options = {}) {
   const view = normalizeView(getView());
   if (view === 'csv-all-data') renderCsvAllData(options);
+  else if (isCsvListView(view)) renderCsvList(csvListIdFromView(view), options);
   else renderCsvDashboard(options);
+}
+
+function csvTasksForList(list) {
+  const taskById = new Map((state.csv.data?.tasks || []).map(task => [task.id, task]));
+  return list.taskIds.map(id => taskById.get(id)).filter(Boolean);
+}
+
+function persistCsvLists(lists) {
+  state.csv = {
+    ...state.csv,
+    lists: saveCsvLists(lists),
+  };
+  renderCsvListNav();
+}
+
+function generateCsvListId() {
+  const random = Math.random().toString(36).slice(2, 8);
+  return `csv-list-${Date.now().toString(36)}-${random}`;
+}
+
+function selectedCsvListIds() {
+  return Array.isArray(state.csv.listEdit.selectedIds) ? state.csv.listEdit.selectedIds : [];
+}
+
+function updateCsvListEdit(changes) {
+  state.csv = {
+    ...state.csv,
+    listEdit: {
+      ...state.csv.listEdit,
+      ...changes,
+    },
+  };
+}
+
+function toggleCsvListEditMode(active) {
+  const nextActive = typeof active === 'boolean' ? active : !state.csv.listEdit.active;
+  updateCsvListEdit({
+    active: nextActive,
+    selectedIds: nextActive ? selectedCsvListIds() : [],
+  });
+  renderActiveCsvView();
+}
+
+function toggleCsvListSelection(taskId) {
+  if (!taskId) return;
+  const selected = new Set(selectedCsvListIds());
+  if (selected.has(taskId)) selected.delete(taskId);
+  else selected.add(taskId);
+  updateCsvListEdit({ selectedIds: [...selected] });
+  renderActiveCsvView();
+}
+
+function setCsvVisibleSelection(taskIds, selected) {
+  const visibleIds = Array.isArray(taskIds) ? taskIds.filter(Boolean) : [];
+  const next = new Set(selectedCsvListIds());
+  for (const taskId of visibleIds) {
+    if (selected) next.add(taskId);
+    else next.delete(taskId);
+  }
+  updateCsvListEdit({ selectedIds: [...next] });
+  renderActiveCsvView();
+}
+
+function clearCsvListSelection() {
+  updateCsvListEdit({ selectedIds: [] });
+  renderActiveCsvView();
+}
+
+function setCsvListTarget(listId) {
+  updateCsvListEdit({ targetListId: listId || '' });
+  renderActiveCsvView();
+}
+
+function setCsvNewListName(name) {
+  updateCsvListEdit({ newListName: name || '' });
+  renderActiveCsvView({ preserveFocus: true });
+}
+
+function createCsvListFromSelection() {
+  const taskIds = selectedCsvListIds();
+  const name = String(state.csv.listEdit.newListName || '').trim();
+  if (!name || taskIds.length === 0) return;
+  const list = {
+    id: generateCsvListId(),
+    name,
+    taskIds,
+  };
+  persistCsvLists([...state.csv.lists, list]);
+  updateCsvListEdit({
+    targetListId: list.id,
+    newListName: '',
+  });
+  renderActiveCsvView();
+}
+
+function appendSelectionToCsvList(listId) {
+  const taskIds = selectedCsvListIds();
+  if (!listId || taskIds.length === 0) return;
+  persistCsvLists(state.csv.lists.map(list => {
+    if (list.id !== listId) return list;
+    return {
+      ...list,
+      taskIds: [...new Set([...list.taskIds, ...taskIds])],
+    };
+  }));
+  updateCsvListEdit({ targetListId: listId });
+  renderActiveCsvView();
+}
+
+function removeSelectedFromCsvList(listId) {
+  const selected = new Set(selectedCsvListIds());
+  if (!listId || selected.size === 0) return;
+  persistCsvLists(state.csv.lists.map(list => {
+    if (list.id !== listId) return list;
+    return {
+      ...list,
+      taskIds: list.taskIds.filter(taskId => !selected.has(taskId)),
+    };
+  }));
+  updateCsvListEdit({ selectedIds: [] });
+  renderActiveCsvView();
+}
+
+function renameCsvList(listId) {
+  const list = csvListById(listId);
+  if (!list) return;
+  const name = window.prompt('List name', list.name);
+  if (name === null || !name.trim()) return;
+  persistCsvLists(state.csv.lists.map(item => item.id === listId ? { ...item, name: name.trim() } : item));
+  route();
+}
+
+function deleteCsvList(listId) {
+  const list = csvListById(listId);
+  if (!list) return;
+  if (!window.confirm(`Delete list "${list.name}"?`)) return;
+  persistCsvLists(state.csv.lists.filter(item => item.id !== listId));
+  updateCsvListEdit({ selectedIds: [], targetListId: '' });
+  if (isCsvListView(normalizeView(getView())) && csvListIdFromView(normalizeView(getView())) === listId) {
+    location.hash = '#csv-all-data';
+    return;
+  }
+  route();
+}
+
+function csvEscapeCell(value) {
+  const text = String(value || '');
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function exportCsvList(listId) {
+  const list = csvListById(listId);
+  if (!list) return;
+  const csv = ['ID', ...list.taskIds.map(csvEscapeCell)].join('\n') + '\n';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const filename = `${list.name || 'csv-list'}`.replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '') || 'csv-list';
+  link.href = url;
+  link.download = `${filename}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function parseCsvRows(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  const source = String(text || '');
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i];
+    const next = source[i + 1];
+    if (quoted) {
+      if (char === '"' && next === '"') {
+        cell += '"';
+        i += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        cell += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (char === '\n') {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else if (char !== '\r') {
+      cell += char;
+    }
+  }
+  row.push(cell);
+  if (row.some(value => value.trim())) rows.push(row);
+  return rows;
+}
+
+function importCsvList() {
+  if (!state.csv.data?.tasks?.length) return;
+  const name = window.prompt('List name');
+  if (name === null || !name.trim()) return;
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.csv,text/csv';
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    const rows = parseCsvRows(text);
+    if (rows.length === 0) return;
+    const header = rows[0].map(cell => cell.trim().toLowerCase());
+    const idIndex = header.indexOf('id');
+    const dataRows = idIndex === -1 ? rows : rows.slice(1);
+    const columnIndex = idIndex === -1 ? 0 : idIndex;
+    const validIds = new Set((state.csv.data?.tasks || []).map(task => task.id).filter(Boolean));
+    const taskIds = [...new Set(dataRows.map(row => String(row[columnIndex] || '').trim()).filter(id => id && validIds.has(id)))];
+    if (taskIds.length === 0) return;
+    const list = {
+      id: generateCsvListId(),
+      name: name.trim(),
+      taskIds,
+    };
+    persistCsvLists([...state.csv.lists, list]);
+    location.hash = csvListHash(list.id);
+    route();
+  }, { once: true });
+  input.click();
 }
 
 function setCsvAllDataFilter(name, value) {

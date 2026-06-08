@@ -118,6 +118,24 @@ body {
 
 .nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
 
+.csv-list-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.csv-list-nav-item {
+  padding-left: 18px;
+}
+
+.csv-list-nav-item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── Content ──────────────────────────────────────────────── */
 .content {
   display: flex;
@@ -385,6 +403,81 @@ body {
   margin-bottom: 8px;
 }
 
+.csv-list-management,
+.csv-list-edit-toolbar,
+.csv-list-edit-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.csv-list-management {
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+}
+
+.csv-list-management-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.csv-list-management-title span {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.csv-list-management-title small {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.csv-list-management-actions,
+.csv-list-edit-actions {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.csv-list-edit-toolbar {
+  justify-content: flex-start;
+}
+
+.csv-list-edit-panel {
+  align-items: end;
+  flex-direction: column;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(88, 166, 255, 0.06);
+}
+
+.csv-list-edit-actions {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.csv-list-selected-count {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.csv-list-field {
+  min-width: 180px;
+}
+
 /* ── Data Table ───────────────────────────────────────────── */
 .table-controls {
   display: flex;
@@ -444,6 +537,7 @@ body {
 }
 
 .data-table .col-id { font-family: var(--font-mono); font-size: 12px; color: var(--accent); white-space: nowrap; }
+.data-table .col-select { text-align: center; width: 34px; }
 .data-table .col-score { font-family: var(--font-mono); width: 120px; }
 .data-table .col-pod { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 .data-table .col-desc { min-width: 200px; white-space: normal; line-height: 1.4; }
@@ -524,6 +618,7 @@ body {
 }
 
 .csv-all-data-table col.csv-col-id { width: 7%; }
+.csv-all-data-table col.csv-col-select { width: 4%; }
 .csv-all-data-table col.csv-col-jira { width: 8%; }
 .csv-all-data-table col.csv-col-description { width: 50%; }
 .csv-all-data-table col.csv-col-comments { width: 4%; }
@@ -531,6 +626,16 @@ body {
 .csv-all-data-table col.csv-col-status { width: 7%; }
 .csv-all-data-table col.csv-col-initiative { width: 10%; }
 .csv-all-data-table col.csv-col-priority-pod { width: 8%; }
+
+.csv-row-selector {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+}
+
+.csv-list-row-selected td {
+  border-bottom-color: rgba(63, 185, 80, 0.35);
+}
 
 /* ── Score Bar (inline) ───────────────────────────────────── */
 .score-bar {

@@ -19,13 +19,17 @@ test('CSV upload state uses dedicated localStorage helpers', () => {
 
 test('sidebar exposes CSV and Jira main sections without legacy backlog tools', () => {
   const html = readProjectFile('src/web/index.html');
+  const jiraIndex = html.indexOf('<div class="nav-label">Jira</div>');
+  const csvIndex = html.indexOf('<div class="nav-label">CSV</div>');
 
+  assert.ok(jiraIndex !== -1 && csvIndex !== -1 && jiraIndex < csvIndex);
   assert.match(html, /href="#csv-dashboard"/);
   assert.match(html, /data-view="csv-dashboard"/);
   assert.match(html, /CSV Dashboard/);
   assert.match(html, /href="#csv-all-data"/);
   assert.match(html, /data-view="csv-all-data"/);
   assert.match(html, /CSV All Data/);
+  assert.match(html, /id="csv-list-nav"/);
   assert.match(html, /Jira Dashboard/);
   assert.match(html, /Jira All Data/);
   assert.doesNotMatch(html, />Triage</);
@@ -47,7 +51,9 @@ test('client defaults to Jira Dashboard and routes CSV views explicitly', () => 
   assert.match(app, /'csv-dashboard': 'CSV Dashboard'/);
   assert.match(app, /'csv-all-data': 'CSV All Data'/);
   assert.match(app, /const CSV_VIEWS = \['csv-dashboard', 'csv-all-data'\]/);
+  assert.match(app, /const CSV_LIST_VIEW_PREFIX = 'csv-list:'/);
   assert.match(app, /function isCsvView/);
+  assert.match(app, /function isCsvListView/);
   assert.match(app, /renderCsvView\(view\)/);
   assert.match(app, /location\.hash = '#csv-dashboard'/);
 });
@@ -145,8 +151,9 @@ test('CSV All Data renders required columns and sortable priority order', () => 
   assert.match(components, /const CSV_ALL_DATA_COLUMNS = \[\s*\{ label: 'ID', field: 'id' \},\s*\{ label: 'JIRA', field: 'jira' \},\s*\{ label: 'Description\/Problem', field: 'description' \},\s*\{ label: 'Comments', field: 'comments' \},\s*\{ label: 'Priority', field: 'priority' \},\s*\{ label: 'Status', field: 'status' \},\s*\{ label: 'Initiative', field: 'initiative' \},\s*\{ label: 'Priority pod', field: 'priorityPod' \},\s*\]/);
   assert.doesNotMatch(components, /\{ label: 'Date', field: 'date' \}/);
   assert.match(components, /function csvAllDataColGroupHtml/);
-  assert.match(components, /<colgroup>\$\{CSV_ALL_DATA_COLUMNS\.map/);
-  assert.match(components, /\$\{csvAllDataColGroupHtml\(\)\}<thead><tr>/);
+  assert.match(components, /const selectCol = editMode \? '<col class="csv-col-select">' : ''/);
+  assert.match(components, /<colgroup>\$\{selectCol\}\$\{CSV_ALL_DATA_COLUMNS\.map/);
+  assert.match(components, /\$\{csvAllDataColGroupHtml\(context\.editMode\)\}<thead><tr>/);
   assert.match(components, /function csvJiraKeyCell/);
   assert.match(components, /https:\/\/scopely\.atlassian\.net\/browse\/\$\{encodeURIComponent\(key\)\}/);
   assert.match(components, /<td class="col-id">\$\{csvJiraKeyCell\(task\.jira\)\}<\/td>/);
@@ -165,7 +172,7 @@ test('CSV All Data renders required columns and sortable priority order', () => 
   assert.match(components, /P1: 1/);
   assert.match(components, /P2: 2/);
   assert.match(components, /return \[\.{3}tasks\]\.sort/);
-  assert.match(components, /tasks\.map\(task => `<tr>/);
+  assert.match(components, /tasks\.map\(task => \{/);
   assert.match(style, /\.csv-shell \.badge-priority/);
   assert.match(style, /\.csv-shell \.status-prioritized/);
   assert.match(style, /\.csv-shell \.status-todo/);
@@ -178,6 +185,7 @@ test('CSV All Data renders required columns and sortable priority order', () => 
   assert.match(style, /\.csv-comment-icon::after/);
   assert.match(style, /content: attr\(data-comment\)/);
   assert.match(style, /\.csv-all-data-table\s*\{\s*table-layout: fixed;/);
+  assert.match(style, /\.csv-all-data-table col\.csv-col-select \{ width: 4%; \}/);
   assert.match(style, /\.csv-all-data-table col\.csv-col-description \{ width: 50%; \}/);
   assert.match(style, /\.csv-all-data-table col\.csv-col-comments \{ width: 4%; \}/);
   assert.doesNotMatch(style, /csv-col-date/);
@@ -195,7 +203,7 @@ test('CSV All Data provides persisted filters, group-by, and scoped search', () 
   assert.match(app, /\.\.\.getCsvAllDataFilters\(\)/);
   assert.match(app, /function setCsvAllDataFilter/);
   assert.match(app, /saveCsvAllDataFilters\(filters\)/);
-  assert.match(app, /CSV_FOCUSABLE_INPUT_IDS = new Set\(\['csv-dashboard-search', 'csv-filter-search'\]\)/);
+  assert.match(app, /CSV_FOCUSABLE_INPUT_IDS = new Set\(\['csv-dashboard-search', 'csv-filter-search', 'csv-list-new-name'\]\)/);
   assert.match(components, /csv-filter-status/);
   assert.match(components, /csv-filter-priority/);
   assert.match(components, /csv-filter-initiative/);
@@ -213,6 +221,98 @@ test('CSV All Data provides persisted filters, group-by, and scoped search', () 
   assert.match(components, /function csvTaskMatchesAllDataFilters/);
   assert.match(components, /csvTaskSearchText\(task\)/);
   assert.doesNotMatch(components, /comments \|\| ''\}\.toLowerCase\(\)/);
+});
+
+test('CSV task lists persist in browser storage and render dynamic sidebar navigation', () => {
+  const shared = readProjectFile('src/web/shared.js');
+  const app = readProjectFile('src/web/app.js');
+  const html = readProjectFile('src/web/index.html');
+
+  assert.match(shared, /pth_csv_task_lists/);
+  assert.match(shared, /function normalizeCsvListEntry/);
+  assert.match(shared, /const taskIds = normalizeStringArray\(entry\.taskIds\)/);
+  assert.match(shared, /return \{ id, name, taskIds \}/);
+  assert.match(shared, /function normalizeCsvLists/);
+  assert.match(shared, /export function getCsvLists/);
+  assert.match(shared, /export function saveCsvLists/);
+  assert.match(shared, /localStorage\.setItem\(CSV_LISTS_KEY/);
+  assert.match(app, /getCsvLists/);
+  assert.match(app, /saveCsvLists/);
+  assert.match(app, /lists: getCsvLists\(\)/);
+  assert.match(app, /function renderCsvListNav/);
+  assert.match(app, /data-view="csv-list"/);
+  assert.match(app, /data-list-id="\$\{escapeHtml\(list\.id\)\}"/);
+  assert.match(app, /<span>\$\{escapeHtml\(list\.name\)\}<\/span>/);
+  assert.match(app, /function csvListHash/);
+  assert.match(html, /id="csv-list-nav"/);
+  assert.doesNotMatch(app, /\/api\/csv-list/);
+});
+
+test('CSV All Data list edit mode supports visible row selection and list creation', () => {
+  const app = readProjectFile('src/web/app.js');
+  const components = readProjectFile('src/web/components.js');
+  const style = readProjectFile('src/web/style.css');
+
+  assert.match(app, /listEdit: \{\s*active: false,\s*selectedIds: \[\],\s*targetListId: '',\s*newListName: '',\s*\}/);
+  assert.match(app, /function toggleCsvListEditMode/);
+  assert.match(app, /function toggleCsvListSelection/);
+  assert.match(app, /function setCsvVisibleSelection/);
+  assert.match(app, /function createCsvListFromSelection/);
+  assert.match(app, /function appendSelectionToCsvList/);
+  assert.match(app, /\[\.\.\.new Set\(\[\.\.\.list\.taskIds, \.\.\.taskIds\]\)\]/);
+  assert.match(components, /function csvListEditControlsHtml/);
+  assert.match(components, /data-csv-list-edit-toggle/);
+  assert.match(components, /data-csv-select-row="\$\{esc\(taskId\)\}"/);
+  assert.match(components, /class="row-selected csv-list-row-selected"/);
+  assert.match(components, /data-csv-list-select-visible/);
+  assert.match(components, /Select visible/);
+  assert.match(components, /id="csv-list-target"/);
+  assert.match(components, /id="csv-list-new-name"/);
+  assert.match(components, /data-csv-list-append/);
+  assert.match(components, /data-csv-list-create/);
+  assert.match(style, /\.csv-list-edit-toolbar/);
+  assert.match(style, /\.csv-list-edit-panel/);
+  assert.match(style, /\.csv-list-row-selected td/);
+});
+
+test('CSV list views reuse All Data rendering and expose list management', () => {
+  const app = readProjectFile('src/web/app.js');
+  const components = readProjectFile('src/web/components.js');
+
+  assert.match(app, /function renderCsvList/);
+  assert.match(app, /tasks: csvTasksForList\(list\)/);
+  assert.match(app, /function csvTasksForList/);
+  assert.match(app, /list\.taskIds\.map\(id => taskById\.get\(id\)\)\.filter\(Boolean\)/);
+  assert.match(components, /const tasks = Array\.isArray\(options\.tasks\) \? options\.tasks : csvTasks\(state\)/);
+  assert.match(components, /filteredSortedCsvAllDataTasks\(tasks, allData\)/);
+  assert.match(components, /function csvListManagementHtml/);
+  assert.match(components, /data-csv-list-rename/);
+  assert.match(components, /data-csv-list-delete/);
+  assert.match(components, /data-csv-list-remove-selected/);
+  assert.match(app, /function renameCsvList/);
+  assert.match(app, /function deleteCsvList/);
+  assert.match(app, /function removeSelectedFromCsvList/);
+  assert.match(app, /location\.hash = '#csv-all-data'/);
+});
+
+test('CSV lists import and export one ID-column CSV in the browser', () => {
+  const app = readProjectFile('src/web/app.js');
+  const components = readProjectFile('src/web/components.js');
+
+  assert.match(components, /data-csv-list-export/);
+  assert.match(components, /data-csv-list-import/);
+  assert.match(app, /function csvEscapeCell/);
+  assert.match(app, /function exportCsvList/);
+  assert.match(app, /const csv = \['ID', \.\.\.list\.taskIds\.map\(csvEscapeCell\)\]\.join\('\\n'\) \+ '\\n'/);
+  assert.match(app, /new Blob\(\[csv\], \{ type: 'text\/csv;charset=utf-8' \}\)/);
+  assert.match(app, /link\.download = `\$\{filename\}\.csv`/);
+  assert.match(app, /function parseCsvRows/);
+  assert.match(app, /function importCsvList/);
+  assert.match(app, /window\.prompt\('List name'\)/);
+  assert.match(app, /const idIndex = header\.indexOf\('id'\)/);
+  assert.match(app, /const validIds = new Set\(\(state\.csv\.data\?\.tasks \|\| \[\]\)\.map\(task => task\.id\)\.filter\(Boolean\)\)/);
+  assert.match(app, /filter\(id => id && validIds\.has\(id\)\)/);
+  assert.doesNotMatch(app, /api\('\/api\/list/);
 });
 
 test('web and server active surfaces omit AI selection and legacy backlog routes', () => {

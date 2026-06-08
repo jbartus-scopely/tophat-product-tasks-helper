@@ -17,6 +17,7 @@ export async function apiPost(path, body, signal) {
 const CSV_DATA_KEY = 'pth_csv_latest_upload';
 const CSV_DASHBOARD_FILTERS_KEY = 'pth_csv_dashboard_filters';
 const CSV_ALL_DATA_FILTERS_KEY = 'pth_csv_all_data_filters';
+const CSV_LISTS_KEY = 'pth_csv_task_lists';
 const JIRA_DASHBOARD_VERSIONS_KEY = 'pth_jira_dashboard_versions';
 const JIRA_ALL_DATA_FILTERS_KEY = 'pth_jira_all_data_filters';
 const CSV_ALL_DATA_GROUP_BY_VALUES = ['none', 'status', 'priority', 'initiative', 'priorityPod', 'reporter'];
@@ -43,6 +44,20 @@ function loadStorageStringArray(key) {
 function normalizeStringArray(value) {
   if (!Array.isArray(value)) return [];
   return [...new Set(value.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean))];
+}
+
+function normalizeCsvListEntry(entry) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+  const id = String(entry.id || '').trim();
+  const name = String(entry.name || '').trim();
+  const taskIds = normalizeStringArray(entry.taskIds);
+  if (!id || !name) return null;
+  return { id, name, taskIds };
+}
+
+function normalizeCsvLists(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map(normalizeCsvListEntry).filter(Boolean);
 }
 
 function normalizeCsvTask(task) {
@@ -159,4 +174,18 @@ export function getCsvAllDataFilters() {
 
 export function saveCsvAllDataFilters(filters) {
   localStorage.setItem(CSV_ALL_DATA_FILTERS_KEY, JSON.stringify(normalizeCsvAllDataFilters(filters)));
+}
+
+export function getCsvLists() {
+  try {
+    return normalizeCsvLists(JSON.parse(localStorage.getItem(CSV_LISTS_KEY)));
+  } catch {
+    return [];
+  }
+}
+
+export function saveCsvLists(lists) {
+  const normalized = normalizeCsvLists(lists);
+  localStorage.setItem(CSV_LISTS_KEY, JSON.stringify(normalized));
+  return normalized;
 }

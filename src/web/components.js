@@ -998,8 +998,9 @@ function csvColumnClass(field) {
   return String(field).replace(/[A-Z]/g, match => `-${match.toLowerCase()}`);
 }
 
-function csvAllDataColGroupHtml() {
-  return `<colgroup>${CSV_ALL_DATA_COLUMNS.map(column => `<col class="csv-col-${csvColumnClass(column.field)}">`).join('')}</colgroup>`;
+function csvAllDataColGroupHtml(editMode) {
+  const selectCol = editMode ? '<col class="csv-col-select">' : '';
+  return `<colgroup>${selectCol}${CSV_ALL_DATA_COLUMNS.map(column => `<col class="csv-col-${csvColumnClass(column.field)}">`).join('')}</colgroup>`;
 }
 
 function csvAllDataValue(task, field) {
@@ -1059,9 +1060,19 @@ function csvCommentCell(value) {
   return `<span class="csv-comment-icon" title="${esc(comment)}" data-comment="${esc(comment)}" tabindex="0" aria-label="Comment: ${esc(comment)}"><i data-lucide="message-square-text" style="width:15px;height:15px"></i></span>`;
 }
 
-function csvAllDataRowsHtml(tasks) {
-  if (!tasks.length) return `<tr><td colspan="${CSV_ALL_DATA_COLUMNS.length}" class="jira-empty-cell">No CSV tasks found.</td></tr>`;
-  return tasks.map(task => `<tr>
+function csvAllDataRowsHtml(tasks, context = {}) {
+  const editMode = Boolean(context.editMode);
+  const selected = new Set(context.selectedIds || []);
+  const colspan = CSV_ALL_DATA_COLUMNS.length + (editMode ? 1 : 0);
+  if (!tasks.length) return `<tr><td colspan="${colspan}" class="jira-empty-cell">No CSV tasks found.</td></tr>`;
+  return tasks.map(task => {
+    const taskId = task.id || '';
+    const checked = selected.has(taskId);
+    const rowClass = checked ? ' class="row-selected csv-list-row-selected"' : '';
+    const rowSelect = editMode ? ` data-csv-select-row="${esc(taskId)}"` : '';
+    const selectCell = editMode ? `<td class="col-select"><input type="checkbox" class="csv-row-selector" data-csv-row-check="${esc(taskId)}"${checked ? ' checked' : ''} aria-label="Select ${esc(taskId || 'task')}"></td>` : '';
+    return `<tr data-csv-task-id="${esc(taskId)}"${rowSelect}${rowClass}>
+    ${selectCell}
     <td class="col-id">${esc(task.id || '--')}</td>
     <td class="col-id">${csvJiraKeyCell(task.jira)}</td>
     <td class="col-desc">${linkify(esc(task.description || '--'))}</td>
@@ -1070,16 +1081,18 @@ function csvAllDataRowsHtml(tasks) {
     <td>${statusBadge(task.status)}</td>
     <td>${csvInitiativeHtml(task.initiative)}</td>
     <td class="col-pod">${esc(task.priorityPod || '--')}</td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
 
-function csvAllDataTableHtml(tasks, allData) {
+function csvAllDataTableHtml(tasks, allData, context = {}) {
   const sort = allData.sort || { field: 'id', dir: 'asc' };
-  let html = `<table class="data-table csv-all-data-table">${csvAllDataColGroupHtml()}<thead><tr>`;
+  let html = `<table class="data-table csv-all-data-table">${csvAllDataColGroupHtml(context.editMode)}<thead><tr>`;
+  if (context.editMode) html += '<th class="col-select"></th>';
   for (const column of CSV_ALL_DATA_COLUMNS) {
     html += csvSortHeader(column.label, column.field, sort);
   }
-  html += `</tr></thead><tbody>${csvAllDataRowsHtml(tasks)}</tbody></table>`;
+  html += `</tr></thead><tbody>${csvAllDataRowsHtml(tasks, context)}</tbody></table>`;
   return html;
 }
 
@@ -1147,29 +1160,104 @@ function groupCsvAllDataTasks(tasks, groupBy) {
   return [...groups.entries()].sort(([a], [b]) => compareCsvGroupLabels(a, b, groupBy));
 }
 
-function csvAllDataTablesHtml(tasks, allData) {
+function csvAllDataTablesHtml(tasks, allData, context = {}) {
   const groupBy = currentCsvAllDataGroupBy(allData);
-  if (groupBy === 'none') return csvAllDataTableHtml(tasks, allData);
+  if (groupBy === 'none') return csvAllDataTableHtml(tasks, allData, context);
 
   const groups = groupCsvAllDataTasks(tasks, groupBy);
-  if (groups.length === 0) return csvAllDataTableHtml(tasks, allData);
+  if (groups.length === 0) return csvAllDataTableHtml(tasks, allData, context);
 
   let html = '<div class="csv-all-data-groups">';
   for (const [label, rows] of groups) {
-    html += `<div class="jira-group"><div class="jira-group-title">${esc(label)} <span>${rows.length}</span></div>${csvAllDataTableHtml(rows, allData)}</div>`;
+    html += `<div class="jira-group"><div class="jira-group-title">${esc(label)} <span>${rows.length}</span></div>${csvAllDataTableHtml(rows, allData, context)}</div>`;
   }
   html += '</div>';
   return html;
 }
 
-export function renderCsvAllDataView($el, state, actions = {}) {
-  const tasks = csvTasks(state);
+function csvListManagementHtml(options = {}) {
+  if (options.scope !== 'list' || !options.list) return '';
+  const list = options.list;
+  const storedCount = Array.isArray(list.taskIds) ? list.taskIds.length : 0;
+  return `<div class="csv-list-management">
+    <div class="csv-list-management-title">
+      <span>${esc(list.name)}</span>
+      <small>${storedCount} stored IDs</small>
+    </div>
+    <div class="csv-list-management-actions">
+      <button type="button" class="btn" data-csv-list-rename="${esc(list.id)}"><i data-lucide="pencil" style="width:14px;height:14px"></i> Rename</button>
+      <button type="button" class="btn" data-csv-list-export="${esc(list.id)}"><i data-lucide="download" style="width:14px;height:14px"></i> Export IDs</button>
+      <button type="button" class="btn" data-csv-list-import><i data-lucide="upload" style="width:14px;height:14px"></i> Import list</button>
+      <button type="button" class="btn btn-danger" data-csv-list-delete="${esc(list.id)}"><i data-lucide="trash-2" style="width:14px;height:14px"></i> Delete</button>
+    </div>
+  </div>`;
+}
+
+function csvListEditControlsHtml(state, visibleTasks, options = {}) {
+  const edit = state.csv?.listEdit || {};
+  const active = Boolean(edit.active);
+  const selectedIds = selectedValues(edit.selectedIds);
+  const lists = Array.isArray(state.csv?.lists) ? state.csv.lists : [];
+  const visibleIds = visibleTasks.map(task => task.id).filter(Boolean);
+  const selectedCount = selectedIds.length;
+  const currentList = options.scope === 'list' ? options.list : null;
+
+  let html = '<div class="csv-list-edit-toolbar">';
+  html += `<button type="button" class="btn${active ? ' btn-primary' : ''}" data-csv-list-edit-toggle="${active ? 'off' : 'on'}"><i data-lucide="${active ? 'check-square' : 'list-plus'}" style="width:14px;height:14px"></i> ${active ? 'Done selecting' : 'Edit lists'}</button>`;
+  html += '<button type="button" class="btn" data-csv-list-import><i data-lucide="upload" style="width:14px;height:14px"></i> Import list</button>';
+  if (active) html += `<span class="csv-list-selected-count">${selectedCount} selected</span>`;
+  html += '</div>';
+
+  if (!active) return html;
+
+  html += '<div class="csv-list-edit-panel">';
+  html += '<div class="csv-list-edit-actions">';
+  html += `<button type="button" class="btn" data-csv-list-select-visible="${esc(JSON.stringify(visibleIds))}"${visibleIds.length === 0 ? ' disabled' : ''}><i data-lucide="check-square" style="width:14px;height:14px"></i> Select visible</button>`;
+  html += `<button type="button" class="btn" data-csv-list-deselect-visible="${esc(JSON.stringify(visibleIds))}"${visibleIds.length === 0 ? ' disabled' : ''}>Deselect visible</button>`;
+  html += `<button type="button" class="btn" data-csv-list-clear-selection${selectedCount === 0 ? ' disabled' : ''}>Clear</button>`;
+  if (currentList) {
+    html += `<button type="button" class="btn btn-danger" data-csv-list-remove-selected="${esc(currentList.id)}"${selectedCount === 0 ? ' disabled' : ''}><i data-lucide="minus-circle" style="width:14px;height:14px"></i> Remove from list</button>`;
+  }
+  html += '</div>';
+
+  html += '<div class="csv-list-edit-actions">';
+  html += '<div class="ai-form-field csv-list-field"><label>Existing list</label><select id="csv-list-target">';
+  html += '<option value="">Select list</option>';
+  for (const list of lists) html += `<option value="${esc(list.id)}"${edit.targetListId === list.id ? ' selected' : ''}>${esc(list.name)}</option>`;
+  html += '</select></div>';
+  html += `<button type="button" class="btn" data-csv-list-append${!edit.targetListId || selectedCount === 0 ? ' disabled' : ''}><i data-lucide="plus" style="width:14px;height:14px"></i> Add selected</button>`;
+  html += '<div class="ai-form-field csv-list-field"><label>New list</label>';
+  html += `<input type="text" id="csv-list-new-name" value="${esc(edit.newListName || '')}" placeholder="List name"></div>`;
+  html += `<button type="button" class="btn btn-primary" data-csv-list-create${!String(edit.newListName || '').trim() || selectedCount === 0 ? ' disabled' : ''}><i data-lucide="list-plus" style="width:14px;height:14px"></i> Create list</button>`;
+  html += '</div>';
+  html += '</div>';
+  return html;
+}
+
+function parseIdsDataset(value) {
+  try {
+    const parsed = JSON.parse(value || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function renderCsvAllDataView($el, state, actions = {}, options = {}) {
+  const tasks = Array.isArray(options.tasks) ? options.tasks : csvTasks(state);
   const allData = state.csv?.allData || {};
   const visibleTasks = filteredSortedCsvAllDataTasks(tasks, allData);
+  const editMode = Boolean(state.csv?.listEdit?.active);
+  const tableContext = {
+    editMode,
+    selectedIds: state.csv?.listEdit?.selectedIds || [],
+  };
 
   let html = '<div class="jira-shell csv-shell">';
+  html += csvListManagementHtml(options);
+  html += csvListEditControlsHtml(state, visibleTasks, options);
   html += csvAllDataFilterControlsHtml(tasks, allData);
-  html += csvAllDataTablesHtml(visibleTasks, allData);
+  html += csvAllDataTablesHtml(visibleTasks, allData, tableContext);
   html += `<div class="table-footer">Showing ${visibleTasks.length} of ${tasks.length} CSV tasks</div>`;
   html += '</div>';
   $el.innerHTML = html;
@@ -1202,8 +1290,47 @@ export function renderCsvAllDataView($el, state, actions = {}) {
   }
   document.getElementById('csv-filter-search')?.addEventListener('input', (e) => actions.onFilterChange?.('search', e.target.value));
   document.getElementById('csv-group-by')?.addEventListener('change', (e) => actions.onFilterChange?.('groupBy', e.target.value));
+  document.getElementById('csv-list-target')?.addEventListener('change', (e) => actions.onListTargetChange?.(e.target.value));
+  document.getElementById('csv-list-new-name')?.addEventListener('input', (e) => actions.onListNameChange?.(e.target.value));
   $el.querySelectorAll('[data-csv-sort]').forEach(header => {
     header.addEventListener('click', () => actions.onSortChange?.(header.dataset.csvSort));
+  });
+  $el.querySelectorAll('[data-csv-list-edit-toggle]').forEach(button => {
+    button.addEventListener('click', () => actions.onListEditToggle?.(button.dataset.csvListEditToggle === 'on'));
+  });
+  $el.querySelectorAll('[data-csv-row-check]').forEach(input => {
+    input.addEventListener('click', (e) => e.stopPropagation());
+    input.addEventListener('change', () => actions.onListSelectionToggle?.(input.dataset.csvRowCheck));
+  });
+  $el.querySelectorAll('[data-csv-select-row]').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('a, button, input, select, textarea, label')) return;
+      actions.onListSelectionToggle?.(row.dataset.csvSelectRow);
+    });
+  });
+  $el.querySelectorAll('[data-csv-list-select-visible]').forEach(button => {
+    button.addEventListener('click', () => actions.onListSelectVisible?.(parseIdsDataset(button.dataset.csvListSelectVisible), true));
+  });
+  $el.querySelectorAll('[data-csv-list-deselect-visible]').forEach(button => {
+    button.addEventListener('click', () => actions.onListSelectVisible?.(parseIdsDataset(button.dataset.csvListDeselectVisible), false));
+  });
+  $el.querySelector('[data-csv-list-clear-selection]')?.addEventListener('click', () => actions.onListSelectionClear?.());
+  $el.querySelector('[data-csv-list-append]')?.addEventListener('click', () => actions.onListAppend?.(state.csv?.listEdit?.targetListId || ''));
+  $el.querySelector('[data-csv-list-create]')?.addEventListener('click', () => actions.onListCreate?.());
+  $el.querySelectorAll('[data-csv-list-remove-selected]').forEach(button => {
+    button.addEventListener('click', () => actions.onListRemoveSelected?.(button.dataset.csvListRemoveSelected));
+  });
+  $el.querySelectorAll('[data-csv-list-rename]').forEach(button => {
+    button.addEventListener('click', () => actions.onListRename?.(button.dataset.csvListRename));
+  });
+  $el.querySelectorAll('[data-csv-list-delete]').forEach(button => {
+    button.addEventListener('click', () => actions.onListDelete?.(button.dataset.csvListDelete));
+  });
+  $el.querySelectorAll('[data-csv-list-export]').forEach(button => {
+    button.addEventListener('click', () => actions.onListExport?.(button.dataset.csvListExport));
+  });
+  $el.querySelectorAll('[data-csv-list-import]').forEach(button => {
+    button.addEventListener('click', () => actions.onListImport?.());
   });
 
   if (window.lucide) lucide.createIcons();
