@@ -42,6 +42,7 @@ export function createApp(options = {}) {
         const html = readFileSync(resolve(WEB_DIR, 'index.html'), 'utf-8');
         return c.html(html);
     });
+    app.get('/health', (c) => c.json({ ok: true }));
     app.get('/:file{.+\\.(css|js|svg|png)}', (c) => {
         const file = c.req.param('file');
         const filePath = resolve(WEB_DIR, file);

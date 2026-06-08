@@ -4,6 +4,7 @@
   "description": "Web helper for product task dashboards and Jira task views",
   "type": "module",
   "scripts": {
+    "start": "node dist/server.js",
     "web": "tsx src/server.ts",
     "build": "tsc",
     "test": "npm run build && node --test \"dist/**/*.test.js\""
