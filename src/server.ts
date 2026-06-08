@@ -213,7 +213,7 @@ const isMain = process.argv[1] && (
 );
 if (isMain) {
   await import('dotenv/config');
-  const port = parseInt(process.env.PTH_PORT || '3000');
+  const port = parseInt(process.env.PORT || process.env.PTH_PORT || '3000');
   startServer(port);
 }
 

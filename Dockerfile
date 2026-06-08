@@ -13,7 +13,7 @@ FROM node:24-slim AS runtime
 
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PTH_PORT=3000
+ENV PORT=3000
 
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules

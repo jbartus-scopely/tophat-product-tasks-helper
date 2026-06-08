@@ -171,7 +171,7 @@ const isMain = process.argv[1] && (process.argv[1].endsWith('/server.ts') ||
     process.argv[1].endsWith('/server.js'));
 if (isMain) {
     await import('dotenv/config');
-    const port = parseInt(process.env.PTH_PORT || '3000');
+    const port = parseInt(process.env.PORT || process.env.PTH_PORT || '3000');
     startServer(port);
 }
 function jiraConfigErrorResponse(error) {
