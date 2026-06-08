@@ -20,62 +20,22 @@
       </div>
 
       <div class="nav-section">
-        <div class="nav-label">Overview</div>
-        <a href="#dashboard" class="nav-item active" data-view="dashboard">
-          <i data-lucide="layout-dashboard" class="nav-icon"></i> Dashboard
+        <div class="nav-label">CSV</div>
+        <a href="#csv-dashboard" class="nav-item" data-view="csv-dashboard">
+          <i data-lucide="layout-dashboard" class="nav-icon"></i> CSV Dashboard
+        </a>
+        <a href="#csv-all-data" class="nav-item" data-view="csv-all-data">
+          <i data-lucide="table-2" class="nav-icon"></i> CSV All Data
         </a>
       </div>
 
       <div class="nav-section">
         <div class="nav-label">Jira</div>
-        <a href="#jira-dashboard" class="nav-item" data-view="jira-dashboard">
-          <i data-lucide="radar" class="nav-icon"></i> Dashboard
+        <a href="#jira-dashboard" class="nav-item active" data-view="jira-dashboard">
+          <i data-lucide="radar" class="nav-icon"></i> Jira Dashboard
         </a>
         <a href="#jira-all-data" class="nav-item" data-view="jira-all-data">
-          <i data-lucide="table" class="nav-icon"></i> All Data
-        </a>
-      </div>
-
-      <div class="nav-section">
-        <div class="nav-label">Task Lists</div>
-        <a href="#triage" class="nav-item" data-view="triage">
-          <i data-lucide="inbox" class="nav-icon"></i> Triage
-        </a>
-        <a href="#backlog" class="nav-item" data-view="backlog">
-          <i data-lucide="list-todo" class="nav-icon"></i> Backlog
-        </a>
-        <a href="#inprogress" class="nav-item" data-view="inprogress">
-          <i data-lucide="loader" class="nav-icon"></i> In Progress
-        </a>
-        <a href="#done" class="nav-item" data-view="done">
-          <i data-lucide="circle-check" class="nav-icon"></i> Done
-        </a>
-        <a href="#blocked" class="nav-item" data-view="blocked">
-          <i data-lucide="octagon-x" class="nav-icon"></i> Blocked
-        </a>
-      </div>
-
-      <div class="nav-section">
-        <div class="nav-label">AI Tools</div>
-        <a href="#analyze" class="nav-item" data-view="analyze">
-          <i data-lucide="sparkles" class="nav-icon"></i> Analyze
-        </a>
-        <a href="#groom" class="nav-item" data-view="groom">
-          <i data-lucide="scan-search" class="nav-icon"></i> Groom Triage
-        </a>
-        <a href="#prioritize" class="nav-item" data-view="prioritize">
-          <i data-lucide="arrow-up-circle" class="nav-icon"></i> Prioritize
-        </a>
-        <a href="#duplicates" class="nav-item" data-view="duplicates">
-          <i data-lucide="copy" class="nav-icon"></i> Duplicates
-        </a>
-      </div>
-
-      <div class="nav-section">
-        <div class="nav-label">Session</div>
-        <a href="#selection" class="nav-item" data-view="selection">
-          <i data-lucide="clipboard-list" class="nav-icon"></i> Selection
-          <span class="nav-badge" id="selection-count" style="display:none">0</span>
+          <i data-lucide="table" class="nav-icon"></i> Jira All Data
         </a>
       </div>
 
@@ -92,9 +52,8 @@
     <main class="content">
       <!-- Top bar -->
       <header class="topbar">
-        <h1 class="page-title" id="page-title">Dashboard</h1>
+        <h1 class="page-title" id="page-title">Jira Dashboard</h1>
         <div class="topbar-right">
-          <span class="ai-badge" id="ai-badge">AI: checking...</span>
           <span class="backlog-badge" id="backlog-badge">No data</span>
         </div>
       </header>
@@ -111,7 +70,7 @@
       <div class="view-container" id="view-container">
         <div class="empty-state" id="empty-state">
           <i data-lucide="file-spreadsheet" style="width:64px;height:64px;opacity:0.5;margin-bottom:16px"></i>
-          <h2>No backlog loaded</h2>
+          <h2>No CSV uploaded</h2>
           <p>Upload a CSV file or drop it anywhere on the page to get started.</p>
           <button class="btn btn-primary" id="empty-upload-btn">Upload CSV</button>
         </div>

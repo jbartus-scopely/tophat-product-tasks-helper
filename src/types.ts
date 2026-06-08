@@ -1,13 +1,19 @@
 export interface Task {
+  date: string;
   jira: string;
   id: string;
   reporter: string;
   description: string;
+  initiative: string;
+  priorityPod: string;
+  priority: string;
+  status: string;
+  comments: string;
+  // Temporary legacy compatibility fields. These are removed from active UI paths
+  // by the CSV refactor tasks after the new CSV views are in place.
   group: string;
   ckNote: string;
-  priority: string;
   type: string;
-  status: string;
   preproWork: string;
   liveVersion: string;
   appearance: string;
@@ -19,7 +25,6 @@ export interface Task {
   uxDesign: string;
   gdUxNeed: string;
   solutionLinks: string;
-  comments: string;
   // Computed fields
   score: number;
   scoreBreakdown: ScoreBreakdown;
@@ -122,6 +127,23 @@ export interface GroomResult {
 }
 
 export const PRIORITY_ORDER = ['P0', 'P1', 'P2', ''] as const;
+
+export const CSV_DISPLAY_COLUMNS = [
+  'ID',
+  'JIRA',
+  'Description/Problem',
+  'Priority',
+  'Status',
+  'Initiative',
+  'Priority pod',
+  'Reporter',
+  'Date',
+  'Comments',
+] as const;
+
+export const CSV_REQUIRED_FIELDS = ['ID', 'Description/Problem', 'Status'] as const;
+export const CSV_VALID_PRIORITIES = ['P0', 'P1', 'P2'] as const;
+export const CSV_VALID_STATUSES = ['TRIAGE', 'TODO', 'Prioritized', 'HOLD'] as const;
 
 export const STATUS_ORDER = [
   'Prioritized',

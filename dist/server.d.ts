@@ -8,5 +8,5 @@ export interface ServerAppOptions {
     jiraIssueSearcher?: JiraIssueSearcher;
 }
 export declare function createApp(options?: ServerAppOptions): Hono;
-export declare function startServer(port: number, filePath?: string): void;
+export declare function startServer(port: number, _filePath?: string): void;
 export {};

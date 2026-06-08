@@ -1,5 +1,3 @@
-import { api, MAX_SCORE, getAiJob, startAiJob, cancelAiJob, resetAiJob, getModels, getSelectedModel, setSelectedModel, getQueryHistory, addQueryToHistory, toggleStarQuery, removeQueryFromHistory, clearQueryHistory, isSelected, addToSelection, addAiTaskToSelection, removeFromSelection, getSelection, clearSelection, updateSelectionOverride, updateSelectionNotes } from './shared.js';
-
 // ── Helpers ──────────────────────────────────────────────────
 function esc(str) {
   const d = document.createElement('div');
@@ -11,6 +9,13 @@ function linkify(escaped) {
   return escaped.replace(/https?:\/\/[^\s<&"']+/g, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
 }
 
+function csvJiraKeyCell(value) {
+  const key = String(value || '').trim();
+  if (!key) return '--';
+  const href = `https://scopely.atlassian.net/browse/${encodeURIComponent(key)}`;
+  return `<a class="jira-key" href="${href}" target="_blank" rel="noopener noreferrer">${esc(key)}</a>`;
+}
+
 function truncate(text, max) {
   if (!text) return '';
   const one = text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -19,10 +24,10 @@ function truncate(text, max) {
 
 // ── Priority Badge ───────────────────────────────────────────
 function priorityBadge(p) {
-  if (p === 'P0') return '<span class="badge badge-p0">P0</span>';
-  if (p === 'P1') return '<span class="badge badge-p1">P1</span>';
-  if (p === 'P2') return '<span class="badge badge-p2">P2</span>';
-  return '<span class="badge badge-none">--</span>';
+  if (p === 'P0') return '<span class="badge badge-priority badge-p0">P0</span>';
+  if (p === 'P1') return '<span class="badge badge-priority badge-p1">P1</span>';
+  if (p === 'P2') return '<span class="badge badge-priority badge-p2">P2</span>';
+  return '<span class="badge badge-priority badge-none">--</span>';
 }
 
 function statusBadge(s) {
@@ -681,6 +686,529 @@ function simpleSpinnerHtml(text) {
   return `<div class="spinner-container"><div class="spinner"></div><div class="spinner-text">${esc(text)}</div></div>`;
 }
 
+// ── CSV Dashboard View ──────────────────────────────────────
+function csvData(state) {
+  return state.csv?.data || { tasks: [], warnings: [], filtered: 0, totalRaw: 0 };
+}
+
+function csvTasks(state) {
+  return Array.isArray(csvData(state).tasks) ? csvData(state).tasks : [];
+}
+
+function csvTaskSearchText(task) {
+  return `${task.id || ''} ${task.jira || ''} ${task.description || ''}`.toLowerCase();
+}
+
+const CSV_STATUS_ORDER = ['Prioritized', 'TODO', 'HOLD', 'TRIAGE'];
+const CSV_DASHBOARD_TABS = [
+  { id: 'active', label: 'Prioritized/TODO' },
+  { id: 'hold', label: 'HOLD' },
+];
+const CSV_NO_STATUS_LABEL = 'No status';
+
+function csvDashboardVisibleTasks(tasks, dashboard) {
+  const filters = dashboard.filters || {};
+  const statuses = selectedValues(filters.status);
+  const initiatives = selectedValues(filters.initiative);
+  const search = (dashboard.search || '').trim().toLowerCase();
+  const activeView = dashboard.activeView === 'hold' ? 'hold' : 'active';
+
+  return tasks.filter(task => {
+    if (activeView === 'hold' && task.status !== 'HOLD') return false;
+    if (activeView !== 'hold' && task.status === 'HOLD') return false;
+    if (statuses.length > 0 && !statuses.includes(task.status || '')) return false;
+    if (initiatives.length > 0 && !initiatives.includes(task.initiative || '')) return false;
+    if (search && !csvTaskSearchText(task).includes(search)) return false;
+    return true;
+  });
+}
+
+function csvBreakdown(tasks, field) {
+  const counts = new Map();
+  for (const task of tasks) {
+    const value = task[field] || '(none)';
+    counts.set(value, (counts.get(value) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => {
+      if (field === 'status') {
+        const ar = csvStatusRank(a.label);
+        const br = csvStatusRank(b.label);
+        if (ar !== br) return ar - br;
+      }
+      return b.count - a.count || a.label.localeCompare(b.label);
+    });
+}
+
+function csvDashboardSummaryHtml(data, visibleTasks) {
+  const statusData = csvBreakdown(visibleTasks, 'status');
+  const initiativeData = csvBreakdown(visibleTasks, 'initiative');
+  let html = '<div class="summary-row csv-summary-row">';
+  html += `<div class="summary-card accent"><div class="summary-card-top"><i data-lucide="layers" class="summary-icon"></i></div><div class="summary-value">${data.tasks.length}</div><div class="summary-label">Loaded Tasks</div></div>`;
+  html += `<div class="summary-card yellow"><div class="summary-card-top"><i data-lucide="triangle-alert" class="summary-icon"></i></div><div class="summary-value">${data.warnings.length}</div><div class="summary-label">Warnings</div></div>`;
+  html += `<div class="card csv-breakdown-card"><div class="card-title"><i data-lucide="activity" style="width:14px;height:14px;vertical-align:-2px"></i> Status</div>${barChart(statusData, '#3fb950')}</div>`;
+  html += `<div class="card csv-breakdown-card"><div class="card-title"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px"></i> Initiative</div>${barChart(initiativeData, '#bc8cff')}</div>`;
+  html += '</div>';
+  return html;
+}
+
+function csvDashboardWarningsHtml(warnings) {
+  if (!warnings.length) return '';
+  let html = '<div class="warnings"><div class="warnings-title"><i data-lucide="triangle-alert" style="width:14px;height:14px;vertical-align:-2px"></i> CSV Warnings</div><ul class="warnings-list">';
+  for (const warning of warnings) html += `<li>${esc(warning)}</li>`;
+  html += '</ul></div>';
+  return html;
+}
+
+function csvDashboardTabsHtml(activeView) {
+  const active = activeView === 'hold' ? 'hold' : 'active';
+  let html = '<div class="jira-dashboard-tabs csv-dashboard-tabs">';
+  for (const tab of CSV_DASHBOARD_TABS) {
+    html += `<button type="button" class="jira-dashboard-tab csv-dashboard-tab${active === tab.id ? ' active' : ''}" data-csv-dashboard-tab="${esc(tab.id)}">${esc(tab.label)}</button>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function csvMultiFilterSelectHtml(id, label, options, values) {
+  const selected = selectedValues(values);
+  const summary = multiFilterLabel(label, options, selected, false);
+  let html = `<div class="ai-form-field jira-filter-field jira-multi-field csv-multi-field"><label>${esc(label)}</label><div class="jira-multi-dropdown csv-multi-dropdown" data-csv-multi-dropdown="${esc(id)}">`;
+  html += `<button type="button" class="jira-multi-toggle csv-multi-toggle" data-csv-multi-toggle="${esc(id)}" aria-expanded="false"><span>${esc(summary)}</span><i data-lucide="chevron-down" style="width:14px;height:14px"></i></button>`;
+  html += `<div class="jira-multi-menu csv-multi-menu" data-csv-multi-menu="${esc(id)}" hidden>`;
+  for (const option of options) html += `<label class="jira-multi-option csv-multi-option"><input type="checkbox" data-csv-multi-input="${esc(id)}" value="${esc(option)}"${selected.includes(option) ? ' checked' : ''}><span>${esc(option)}</span></label>`;
+  if (options.length === 0) html += '<div class="jira-multi-empty">No options</div>';
+  html += '</div></div></div>';
+  return html;
+}
+
+function csvDashboardControlsHtml(tasks, dashboard) {
+  const filters = dashboard.filters || {};
+  const statuses = uniqueSorted(tasks.map(task => task.status || ''), compareCsvStatusValues);
+  const initiatives = uniqueSorted(tasks.map(task => task.initiative || ''));
+  let html = '<div class="table-controls jira-dashboard-controls csv-dashboard-controls">';
+  html += csvMultiFilterSelectHtml('csv-dashboard-status-filter', 'Status', statuses, filters.status || []);
+  html += csvMultiFilterSelectHtml('csv-dashboard-initiative-filter', 'Initiative', initiatives, filters.initiative || []);
+  html += '<div class="jira-version-bulk-actions csv-status-bulk-actions"><button type="button" class="btn" data-csv-status-bulk="open"><i data-lucide="chevrons-down" style="width:14px;height:14px"></i> Open all</button><button type="button" class="btn" data-csv-status-bulk="collapse"><i data-lucide="chevrons-up" style="width:14px;height:14px"></i> Collapse all</button></div>';
+  html += `<div class="ai-form-field jira-search-field"><label>Search</label><input type="text" id="csv-dashboard-search" value="${esc(dashboard.search || '')}"></div>`;
+  html += '</div>';
+  return html;
+}
+
+function csvStatusRank(status) {
+  const idx = CSV_STATUS_ORDER.indexOf(status);
+  return idx === -1 ? CSV_STATUS_ORDER.length : idx;
+}
+
+function compareCsvStatusValues(a, b) {
+  const ar = csvStatusRank(a);
+  const br = csvStatusRank(b);
+  if (ar !== br) return ar - br;
+  return a.localeCompare(b);
+}
+
+function csvStatusLabel(task) {
+  return task.status || CSV_NO_STATUS_LABEL;
+}
+
+function csvGroupedByStatus(tasks) {
+  const groups = new Map();
+  for (const task of tasks) {
+    const label = csvStatusLabel(task);
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(task);
+  }
+  return [...groups.entries()].sort(([a], [b]) => {
+    const ar = csvStatusRank(a === CSV_NO_STATUS_LABEL ? '' : a);
+    const br = csvStatusRank(b === CSV_NO_STATUS_LABEL ? '' : b);
+    if (ar !== br) return ar - br;
+    if (a === CSV_NO_STATUS_LABEL) return 1;
+    if (b === CSV_NO_STATUS_LABEL) return -1;
+    return a.localeCompare(b);
+  });
+}
+
+function csvDashboardRowsHtml(tasks) {
+  if (!tasks.length) return '<tr><td colspan="6" class="jira-empty-cell">No CSV tasks found.</td></tr>';
+  return tasks.map(task => `<tr>
+    <td class="col-id">${esc(task.id || '--')}</td>
+    <td class="col-id">${csvJiraKeyCell(task.jira)}</td>
+    <td class="col-desc">${linkify(esc(task.description || '--'))}</td>
+    <td>${priorityBadge(task.priority)}</td>
+    <td>${csvInitiativeHtml(task.initiative)}</td>
+    <td class="col-pod">${esc(task.priorityPod || '--')}</td>
+  </tr>`).join('');
+}
+
+function csvDashboardTableHtml(tasks) {
+  const rows = csvDashboardSortedRows(tasks);
+  return `<table class="data-table csv-dashboard-table"><thead><tr>
+    <th>ID</th>
+    <th>JIRA</th>
+    <th>Description/Problem</th>
+    <th>Priority</th>
+    <th>Initiative</th>
+    <th>Priority pod</th>
+  </tr></thead><tbody>${csvDashboardRowsHtml(rows)}</tbody></table>`;
+}
+
+function csvStatusGroupHtml(status, rows, dashboard) {
+  const expanded = dashboard.expandedStatuses?.[status] !== false;
+  let html = `<div class="jira-group csv-status-group"><button type="button" class="jira-group-toggle" data-csv-status-toggle="${esc(status)}" aria-expanded="${expanded}">
+    <i data-lucide="${expanded ? 'chevron-down' : 'chevron-right'}" style="width:14px;height:14px"></i>
+    <span class="csv-status-group-title">${esc(status)}</span>
+    <span>${rows.length}</span>
+  </button>`;
+  if (expanded) html += csvDashboardTableHtml(rows);
+  html += '</div>';
+  return html;
+}
+
+function csvStatusGroupsHtml(visibleTasks, dashboard) {
+  const groups = csvGroupedByStatus(visibleTasks);
+  let html = '<section class="jira-section-card csv-status-groups">';
+  if (groups.length === 0) {
+    html += jiraInlineEmptyHtml('No CSV tasks found.');
+  } else {
+    for (const [status, rows] of groups) {
+      html += csvStatusGroupHtml(status, rows, dashboard);
+    }
+  }
+  html += '</section>';
+  return html;
+}
+
+function checkedCsvMultiValues($el, id) {
+  return [...$el.querySelectorAll(`[data-csv-multi-input="${id}"]:checked`)].map(input => input.value);
+}
+
+function openCsvMultiMenus($el, openId) {
+  $el.querySelectorAll('[data-csv-multi-menu]').forEach(menu => {
+    const id = menu.dataset.csvMultiMenu;
+    const isOpen = id === openId;
+    menu.hidden = !isOpen;
+    $el.querySelector(`[data-csv-multi-toggle="${id}"]`)?.setAttribute('aria-expanded', String(isOpen));
+  });
+}
+
+export function renderCsvDashboardView($el, state, actions = {}) {
+  const data = csvData(state);
+  const tasks = csvTasks(state);
+  const dashboard = state.csv?.dashboard || {};
+  const visibleTasks = csvDashboardVisibleTasks(tasks, dashboard);
+
+  let html = '<div class="jira-shell csv-shell">';
+  html += csvDashboardSummaryHtml(data, visibleTasks);
+  html += csvDashboardWarningsHtml(data.warnings || []);
+  html += csvDashboardTabsHtml(dashboard.activeView);
+  html += csvDashboardControlsHtml(tasks, dashboard);
+  html += csvStatusGroupsHtml(visibleTasks, dashboard);
+  html += `<div class="table-footer">Showing ${visibleTasks.length} of ${tasks.length} CSV tasks</div>`;
+  html += '</div>';
+  $el.innerHTML = html;
+  openCsvMultiMenus($el, state.csv?.openMultiDropdown || null);
+
+  $el.querySelectorAll('[data-csv-multi-dropdown]').forEach(dropdown => {
+    dropdown.addEventListener('click', (e) => e.stopPropagation());
+  });
+  $el.querySelectorAll('[data-csv-multi-toggle]').forEach(button => {
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      actions.onMultiDropdownToggle?.(button.dataset.csvMultiToggle);
+    });
+  });
+  $el.querySelectorAll('[data-csv-multi-input]').forEach(input => {
+    input.addEventListener('change', () => {
+      const id = input.dataset.csvMultiInput;
+      const values = checkedCsvMultiValues($el, id);
+      if (id === 'csv-dashboard-status-filter') actions.onFilterChange?.('status', values);
+      if (id === 'csv-dashboard-initiative-filter') actions.onFilterChange?.('initiative', values);
+    });
+  });
+  $el.querySelectorAll('[data-csv-dashboard-tab]').forEach(button => {
+    button.addEventListener('click', () => actions.onDashboardTabChange?.(button.dataset.csvDashboardTab));
+  });
+  $el.querySelectorAll('[data-csv-status-toggle]').forEach(button => {
+    button.addEventListener('click', () => actions.onStatusGroupToggle?.(button.dataset.csvStatusToggle));
+  });
+  $el.querySelectorAll('[data-csv-status-bulk]').forEach(button => {
+    button.addEventListener('click', () => {
+      const statuses = [...$el.querySelectorAll('[data-csv-status-toggle]')]
+        .map(toggle => toggle.dataset.csvStatusToggle)
+        .filter(Boolean);
+      actions.onStatusGroupsSet?.(statuses, button.dataset.csvStatusBulk === 'open');
+    });
+  });
+  if (state.csv?.openMultiDropdown) {
+    setTimeout(() => {
+      document.addEventListener('click', () => actions.onMultiDropdownClose?.(), { once: true });
+    }, 0);
+  }
+  document.getElementById('csv-dashboard-search')?.addEventListener('input', (e) => actions.onSearchChange?.(e.target.value));
+  if (window.lucide) lucide.createIcons();
+}
+
+// ── CSV All Data View ───────────────────────────────────────
+const CSV_ALL_DATA_COLUMNS = [
+  { label: 'ID', field: 'id' },
+  { label: 'JIRA', field: 'jira' },
+  { label: 'Description/Problem', field: 'description' },
+  { label: 'Comments', field: 'comments' },
+  { label: 'Priority', field: 'priority' },
+  { label: 'Status', field: 'status' },
+  { label: 'Initiative', field: 'initiative' },
+  { label: 'Priority pod', field: 'priorityPod' },
+];
+
+const CSV_ALL_DATA_GROUP_BY_OPTIONS = [
+  { value: 'none', label: 'None' },
+  { value: 'status', label: 'Status' },
+  { value: 'priority', label: 'Priority' },
+  { value: 'initiative', label: 'Initiative' },
+  { value: 'priorityPod', label: 'Priority pod' },
+  { value: 'reporter', label: 'Reporter' },
+];
+
+const CSV_NO_GROUP_LABELS = {
+  status: 'No status',
+  priority: 'No priority',
+  initiative: 'No initiative',
+  priorityPod: 'No priority pod',
+  reporter: 'No reporter',
+};
+
+const CSV_PRIORITY_RANK = {
+  P0: 0,
+  P1: 1,
+  P2: 2,
+  '': 3,
+};
+
+function csvPriorityRank(value) {
+  return CSV_PRIORITY_RANK[String(value || '').trim()] ?? 3;
+}
+
+function csvSortHeader(label, field, sort) {
+  const cls = sort?.field === field ? `sortable sort-${sort.dir}` : 'sortable';
+  return `<th class="${cls}" data-csv-sort="${esc(field)}">${esc(label)}</th>`;
+}
+
+function csvColumnClass(field) {
+  return String(field).replace(/[A-Z]/g, match => `-${match.toLowerCase()}`);
+}
+
+function csvAllDataColGroupHtml() {
+  return `<colgroup>${CSV_ALL_DATA_COLUMNS.map(column => `<col class="csv-col-${csvColumnClass(column.field)}">`).join('')}</colgroup>`;
+}
+
+function csvAllDataValue(task, field) {
+  return task[field] || '';
+}
+
+function compareCsvTasks(a, b, field) {
+  if (field === 'priority') {
+    const ar = csvPriorityRank(a.priority);
+    const br = csvPriorityRank(b.priority);
+    if (ar !== br) return ar - br;
+    return (a.priority || '').localeCompare(b.priority || '');
+  }
+  return String(csvAllDataValue(a, field)).localeCompare(String(csvAllDataValue(b, field)));
+}
+
+function csvDashboardSortedRows(tasks) {
+  return [...tasks].sort((a, b) => {
+    const priority = compareCsvTasks(a, b, 'priority');
+    if (priority !== 0) return priority;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+}
+
+function sortedCsvAllDataTasks(tasks, allData) {
+  const sort = allData.sort || { field: 'id', dir: 'asc' };
+  const direction = sort.dir === 'desc' ? -1 : 1;
+  return [...tasks].sort((a, b) => compareCsvTasks(a, b, sort.field) * direction);
+}
+
+function csvTaskMatchesAllDataFilters(task, filters) {
+  const statuses = selectedValues(filters.status);
+  const priorities = selectedValues(filters.priority);
+  const initiatives = selectedValues(filters.initiative);
+  const priorityPods = selectedValues(filters.priorityPod);
+  const reporters = selectedValues(filters.reporter);
+
+  if (statuses.length > 0 && !statuses.includes(task.status || '')) return false;
+  if (priorities.length > 0 && !priorities.includes(task.priority || '')) return false;
+  if (initiatives.length > 0 && !initiatives.includes(task.initiative || '')) return false;
+  if (priorityPods.length > 0 && !priorityPods.includes(task.priorityPod || '')) return false;
+  if (reporters.length > 0 && !reporters.includes(task.reporter || '')) return false;
+
+  const search = (filters.search || '').trim().toLowerCase();
+  if (search && !csvTaskSearchText(task).includes(search)) return false;
+  return true;
+}
+
+function filteredSortedCsvAllDataTasks(tasks, allData) {
+  const filters = allData.filters || {};
+  return sortedCsvAllDataTasks(tasks.filter(task => csvTaskMatchesAllDataFilters(task, filters)), allData);
+}
+
+function csvCommentCell(value) {
+  const comment = String(value || '').trim();
+  if (!comment) return '<span class="csv-comment-empty">--</span>';
+  return `<span class="csv-comment-icon" title="${esc(comment)}" data-comment="${esc(comment)}" tabindex="0" aria-label="Comment: ${esc(comment)}"><i data-lucide="message-square-text" style="width:15px;height:15px"></i></span>`;
+}
+
+function csvAllDataRowsHtml(tasks) {
+  if (!tasks.length) return `<tr><td colspan="${CSV_ALL_DATA_COLUMNS.length}" class="jira-empty-cell">No CSV tasks found.</td></tr>`;
+  return tasks.map(task => `<tr>
+    <td class="col-id">${esc(task.id || '--')}</td>
+    <td class="col-id">${csvJiraKeyCell(task.jira)}</td>
+    <td class="col-desc">${linkify(esc(task.description || '--'))}</td>
+    <td class="col-comments">${csvCommentCell(task.comments)}</td>
+    <td>${priorityBadge(task.priority)}</td>
+    <td>${statusBadge(task.status)}</td>
+    <td>${csvInitiativeHtml(task.initiative)}</td>
+    <td class="col-pod">${esc(task.priorityPod || '--')}</td>
+  </tr>`).join('');
+}
+
+function csvAllDataTableHtml(tasks, allData) {
+  const sort = allData.sort || { field: 'id', dir: 'asc' };
+  let html = `<table class="data-table csv-all-data-table">${csvAllDataColGroupHtml()}<thead><tr>`;
+  for (const column of CSV_ALL_DATA_COLUMNS) {
+    html += csvSortHeader(column.label, column.field, sort);
+  }
+  html += `</tr></thead><tbody>${csvAllDataRowsHtml(tasks)}</tbody></table>`;
+  return html;
+}
+
+function currentCsvAllDataGroupBy(allData) {
+  const groupBy = allData.filters?.groupBy || 'none';
+  return CSV_ALL_DATA_GROUP_BY_OPTIONS.some(option => option.value === groupBy) ? groupBy : 'none';
+}
+
+function csvAllDataFilterControlsHtml(baseTasks, allData) {
+  const filters = allData.filters || {};
+  const statuses = uniqueSorted(baseTasks.map(task => task.status || ''), compareCsvStatusValues);
+  const priorities = uniqueSorted(baseTasks.map(task => task.priority || ''));
+  const initiatives = uniqueSorted(baseTasks.map(task => task.initiative || ''));
+  const priorityPods = uniqueSorted(baseTasks.map(task => task.priorityPod || ''));
+  const reporters = uniqueSorted(baseTasks.map(task => task.reporter || ''));
+
+  let html = '<div class="table-controls jira-filter-controls csv-filter-controls">';
+  html += csvMultiFilterSelectHtml('csv-filter-status', 'Status', statuses, filters.status || []);
+  html += csvMultiFilterSelectHtml('csv-filter-priority', 'Priority', priorities, filters.priority || []);
+  html += csvMultiFilterSelectHtml('csv-filter-initiative', 'Initiative', initiatives, filters.initiative || []);
+  html += csvMultiFilterSelectHtml('csv-filter-priority-pod', 'Priority pod', priorityPods, filters.priorityPod || []);
+  html += csvMultiFilterSelectHtml('csv-filter-reporter', 'Reporter', reporters, filters.reporter || []);
+  html += csvGroupBySelectHtml(currentCsvAllDataGroupBy(allData));
+  html += `<div class="ai-form-field jira-search-field"><label>Search</label><input type="text" id="csv-filter-search" value="${esc(filters.search || '')}"></div>`;
+  html += '</div>';
+  return html;
+}
+
+function csvGroupBySelectHtml(value) {
+  let html = '<div class="ai-form-field jira-group-by-field"><label>Group by</label><select id="csv-group-by">';
+  for (const option of CSV_ALL_DATA_GROUP_BY_OPTIONS) {
+    html += `<option value="${esc(option.value)}"${option.value === value ? ' selected' : ''}>${esc(option.label)}</option>`;
+  }
+  html += '</select></div>';
+  return html;
+}
+
+function csvGroupLabelForTask(task, groupBy) {
+  return task[groupBy] || CSV_NO_GROUP_LABELS[groupBy] || 'No value';
+}
+
+function compareCsvGroupLabels(a, b, groupBy) {
+  if (groupBy === 'status') {
+    const ar = csvStatusRank(a === CSV_NO_GROUP_LABELS.status ? '' : a);
+    const br = csvStatusRank(b === CSV_NO_GROUP_LABELS.status ? '' : b);
+    if (ar !== br) return ar - br;
+  }
+  if (groupBy === 'priority') {
+    const ar = csvPriorityRank(a === CSV_NO_GROUP_LABELS.priority ? '' : a);
+    const br = csvPriorityRank(b === CSV_NO_GROUP_LABELS.priority ? '' : b);
+    if (ar !== br) return ar - br;
+  }
+  if (a.startsWith('No ') && !b.startsWith('No ')) return 1;
+  if (!a.startsWith('No ') && b.startsWith('No ')) return -1;
+  return a.localeCompare(b);
+}
+
+function groupCsvAllDataTasks(tasks, groupBy) {
+  const groups = new Map();
+  for (const task of tasks) {
+    const label = csvGroupLabelForTask(task, groupBy);
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(task);
+  }
+  return [...groups.entries()].sort(([a], [b]) => compareCsvGroupLabels(a, b, groupBy));
+}
+
+function csvAllDataTablesHtml(tasks, allData) {
+  const groupBy = currentCsvAllDataGroupBy(allData);
+  if (groupBy === 'none') return csvAllDataTableHtml(tasks, allData);
+
+  const groups = groupCsvAllDataTasks(tasks, groupBy);
+  if (groups.length === 0) return csvAllDataTableHtml(tasks, allData);
+
+  let html = '<div class="csv-all-data-groups">';
+  for (const [label, rows] of groups) {
+    html += `<div class="jira-group"><div class="jira-group-title">${esc(label)} <span>${rows.length}</span></div>${csvAllDataTableHtml(rows, allData)}</div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+export function renderCsvAllDataView($el, state, actions = {}) {
+  const tasks = csvTasks(state);
+  const allData = state.csv?.allData || {};
+  const visibleTasks = filteredSortedCsvAllDataTasks(tasks, allData);
+
+  let html = '<div class="jira-shell csv-shell">';
+  html += csvAllDataFilterControlsHtml(tasks, allData);
+  html += csvAllDataTablesHtml(visibleTasks, allData);
+  html += `<div class="table-footer">Showing ${visibleTasks.length} of ${tasks.length} CSV tasks</div>`;
+  html += '</div>';
+  $el.innerHTML = html;
+  openCsvMultiMenus($el, state.csv?.openMultiDropdown || null);
+
+  $el.querySelectorAll('[data-csv-multi-dropdown]').forEach(dropdown => {
+    dropdown.addEventListener('click', (e) => e.stopPropagation());
+  });
+  $el.querySelectorAll('[data-csv-multi-toggle]').forEach(button => {
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      actions.onMultiDropdownToggle?.(button.dataset.csvMultiToggle);
+    });
+  });
+  $el.querySelectorAll('[data-csv-multi-input]').forEach(input => {
+    input.addEventListener('change', () => {
+      const id = input.dataset.csvMultiInput;
+      const values = checkedCsvMultiValues($el, id);
+      if (id === 'csv-filter-status') actions.onFilterChange?.('status', values);
+      if (id === 'csv-filter-priority') actions.onFilterChange?.('priority', values);
+      if (id === 'csv-filter-initiative') actions.onFilterChange?.('initiative', values);
+      if (id === 'csv-filter-priority-pod') actions.onFilterChange?.('priorityPod', values);
+      if (id === 'csv-filter-reporter') actions.onFilterChange?.('reporter', values);
+    });
+  });
+  if (state.csv?.openMultiDropdown) {
+    setTimeout(() => {
+      document.addEventListener('click', () => actions.onMultiDropdownClose?.(), { once: true });
+    }, 0);
+  }
+  document.getElementById('csv-filter-search')?.addEventListener('input', (e) => actions.onFilterChange?.('search', e.target.value));
+  document.getElementById('csv-group-by')?.addEventListener('change', (e) => actions.onFilterChange?.('groupBy', e.target.value));
+  $el.querySelectorAll('[data-csv-sort]').forEach(header => {
+    header.addEventListener('click', () => actions.onSortChange?.(header.dataset.csvSort));
+  });
+
+  if (window.lucide) lucide.createIcons();
+}
+
 // ── Jira View ───────────────────────────────────────────────
 const JIRA_DASHBOARD_TABS = [
   { id: 'versions', label: 'Versions' },
@@ -742,6 +1270,11 @@ function jiraWarningCount(section) {
 
 function jiraValueBadge(value) {
   return `<span class="badge-group">${esc(value || '--')}</span>`;
+}
+
+function csvInitiativeHtml(value) {
+  if (!value) return '<span class="jira-labels-empty">--</span>';
+  return `<div class="jira-labels csv-initiative-labels"><span class="jira-label csv-initiative-label">${esc(value)}</span></div>`;
 }
 
 function jiraPriorityBadge(value) {
@@ -864,8 +1397,8 @@ function allSavedIssues(sections) {
   return sections.flatMap(section => Array.isArray(section.issues) ? section.issues : []);
 }
 
-function uniqueSorted(values) {
-  return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+function uniqueSorted(values, compare = (a, b) => a.localeCompare(b)) {
+  return [...new Set(values.filter(Boolean))].sort(compare);
 }
 
 function selectedValues(value) {
@@ -1510,412 +2043,4 @@ export function renderJiraView($el, state, actions = {}) {
   wireJiraVersionBugTooltips($el);
 
   if (window.lucide) lucide.createIcons();
-}
-
-// ── Dashboard View ───────────────────────────────────────────
-export function renderDashboard($el, state) {
-  const s = state.stats;
-  if (!s) return;
-
-  const priorityData = Object.entries(s.byPriority).map(([label, count]) => ({ label, count }));
-  const statusData = Object.entries(s.byStatus).map(([label, count]) => ({ label, count }));
-  const groupData = Object.entries(s.byGroup).map(([label, count]) => ({ label, count }));
-
-  let html = '<div class="summary-row">';
-  html += `<div class="summary-card accent"><div class="summary-card-top"><i data-lucide="layers" class="summary-icon"></i></div><div class="summary-value">${s.total}</div><div class="summary-label">Total Tasks</div></div>`;
-  html += `<div class="summary-card green"><div class="summary-card-top"><i data-lucide="target" class="summary-icon"></i></div><div class="summary-value">${s.actionable}</div><div class="summary-label">Actionable</div></div>`;
-  html += `<div class="summary-card yellow"><div class="summary-card-top"><i data-lucide="zap" class="summary-icon"></i></div><div class="summary-value">${s.quickWins}</div><div class="summary-label">Quick Wins</div></div>`;
-  html += `<div class="summary-card dim"><div class="summary-card-top"><i data-lucide="filter-x" class="summary-icon"></i></div><div class="summary-value">${s.filtered}</div><div class="summary-label">Rows Skipped</div></div>`;
-  html += '</div>';
-
-  if (s.warnings.length > 0) {
-    html += '<div class="warnings"><div class="warnings-title"><i data-lucide="triangle-alert" style="width:14px;height:14px;vertical-align:-2px"></i> Data Warnings</div><ul class="warnings-list">';
-    for (const w of s.warnings) html += `<li>${esc(w)}</li>`;
-    html += '</ul></div>';
-  }
-
-  html += '<div class="charts-row">';
-  html += `<div class="card"><div class="card-title"><i data-lucide="signal" style="width:14px;height:14px;vertical-align:-2px"></i> Priority</div>${barChart(priorityData, '#58a6ff')}</div>`;
-  html += `<div class="card"><div class="card-title"><i data-lucide="activity" style="width:14px;height:14px;vertical-align:-2px"></i> Status</div>${barChart(statusData, '#3fb950')}</div>`;
-  html += `<div class="card"><div class="card-title"><i data-lucide="folder" style="width:14px;height:14px;vertical-align:-2px"></i> Group</div>${barChart(groupData, '#bc8cff')}</div>`;
-  html += '</div>';
-
-  $el.innerHTML = html;
-  if (window.lucide) lucide.createIcons();
-}
-
-// ── Task List View ───────────────────────────────────────────
-export function renderTaskList($el, category, state) {
-  const statusHtml = statusFilterSelect(category, 'status-filter');
-  let html = '<div class="table-controls">';
-  html += `<div class="ai-form-field" style="flex:0 0 180px"><label>Group</label>${groupSelect(state.groups, 'group-filter')}</div>`;
-  html += `<div class="ai-form-field" style="flex:0 0 150px"><label>Priority</label>${priorityFilterSelect('priority-filter')}</div>`;
-  if (statusHtml) html += `<div class="ai-form-field" style="flex:0 0 180px"><label>Status</label>${statusHtml}</div>`;
-  html += `<div class="ai-form-field" style="flex:0 0 180px"><label>Pod</label>${podSelect(state.pods, 'pod-filter')}</div>`;
-  html += '</div>';
-  html += exportToolbar('list-export');
-  html += '<div id="task-table-container"><div class="spinner-container"><div class="spinner"></div></div></div>';
-  $el.innerHTML = html;
-
-  let currentTasks = [];
-  let sorter = null;
-
-  function renderTable(tasks) {
-    const container = document.getElementById('task-table-container');
-    container.innerHTML = taskTable(tasks) + `<div class="table-footer">Showing ${tasks.length} tasks</div>`;
-    wireClickToExpand(container);
-    wireSelectionButtons(container, tasks, false, category);
-    sorter.wire(container);
-    if (window.lucide) lucide.createIcons();
-  }
-
-  async function loadTasks() {
-    const group = document.getElementById('group-filter')?.value || '';
-    const priority = document.getElementById('priority-filter')?.value || '';
-    const statusVal = document.getElementById('status-filter')?.value || '';
-    const pod = document.getElementById('pod-filter')?.value || '';
-    const container = document.getElementById('task-table-container');
-    container.innerHTML = '<div class="spinner-container"><div class="spinner"></div></div>';
-
-    let url = `/api/tasks?category=${category}&limit=100`;
-    if (group) url += `&group=${encodeURIComponent(group)}`;
-    if (priority) url += `&priority=${encodeURIComponent(priority)}`;
-    if (statusVal) url += `&status=${encodeURIComponent(statusVal)}`;
-    if (pod) url += `&pod=${encodeURIComponent(pod)}`;
-    const data = await api(url);
-    if (!data.tasks || data.tasks.length === 0) {
-      currentTasks = [];
-      container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">No tasks found.</div>';
-      return;
-    }
-    currentTasks = data.tasks;
-    sorter = makeSortController(currentTasks, false, renderTable);
-    renderTable(currentTasks);
-  }
-
-  wireExportToolbar('list-export', () => currentTasks, false);
-  document.getElementById('group-filter')?.addEventListener('change', loadTasks);
-  document.getElementById('priority-filter')?.addEventListener('change', loadTasks);
-  document.getElementById('status-filter')?.addEventListener('change', loadTasks);
-  document.getElementById('pod-filter')?.addEventListener('change', loadTasks);
-  if (window.lucide) lucide.createIcons();
-  loadTasks();
-}
-
-// ── AI View ──────────────────────────────────────────────────
-const AI_VIEW_CONFIG = {
-  analyze:    { endpoint: '/api/ai/analyze',    btnText: 'Analyze',        spinnerText: 'Asking AI... this may take a minute',    hasQuestion: true,  hasGroup: true,  hasCache: false },
-  groom:      { endpoint: '/api/ai/groom',      btnText: 'Groom Triage',   spinnerText: 'Grooming triage tasks...',               hasQuestion: false, hasGroup: true,  hasCache: true },
-  prioritize: { endpoint: '/api/ai/prioritize', btnText: 'Prioritize TODO',spinnerText: 'Analyzing TODO tasks...',                hasQuestion: false, hasGroup: true,  hasCache: true },
-  duplicates: { endpoint: '/api/ai/duplicates', btnText: 'Find Duplicates',spinnerText: 'Scanning for duplicates...',             hasQuestion: false, hasGroup: false, hasCache: true },
-};
-
-export function renderAiView($el, view, state) {
-  const config = AI_VIEW_CONFIG[view];
-  const job = getAiJob(view);
-  const isRunning = job.status === 'running';
-
-  // Build form
-  let formHtml = '<div class="ai-form"><div class="ai-form-row">';
-  if (config.hasQuestion) formHtml += queryInputHtml();
-  if (config.hasGroup) {
-    formHtml += `<div class="ai-form-field" style="flex:0 0 180px"><label>Group</label>${groupSelect(state.groups, 'ai-group')}</div>`;
-  }
-  formHtml += `<div class="ai-form-field" style="flex:0 0 220px"><label><i data-lucide="cpu" style="width:11px;height:11px;vertical-align:-1px"></i> Model</label>${modelSelect()}${modelWarningHtml()}</div>`;
-  if (config.hasCache) {
-    formHtml += `<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);margin-bottom:1px"><input type="checkbox" id="ai-cache"> Use cache</label>`;
-  }
-  if (isRunning) {
-    formHtml += `<button type="button" class="btn btn-danger" id="ai-cancel" style="margin-bottom:1px"><i data-lucide="square" style="width:12px;height:12px"></i> Cancel</button>`;
-  } else {
-    formHtml += `<button type="button" class="btn btn-primary" id="ai-submit" style="margin-bottom:1px">${config.btnText}</button>`;
-  }
-  formHtml += '</div></div>';
-
-  // Results area
-  let resultsHtml = '';
-  let allAiTasks = [];
-  if (isRunning) {
-    resultsHtml = spinnerHtml(config.spinnerText, job.startedAt);
-  } else if (job.status === 'error') {
-    resultsHtml = errorHtml(job.error);
-    resultsHtml += `<div style="text-align:center;padding:8px"><button type="button" class="btn btn-sm" id="ai-clear">Clear</button></div>`;
-  } else if (job.status === 'done') {
-    if (job.result?.tasks?.length) allAiTasks = job.result.tasks;
-    const scores = state.scores || {};
-    for (const t of allAiTasks) t.score = scores[t.taskId] ?? t.score ?? 0;
-    if (allAiTasks.length) resultsHtml += exportToolbar('ai-export');
-    resultsHtml += view === 'duplicates' ? renderDuplicatesResultsHtml(job.result) : renderAiResultsHtml(job.result);
-    resultsHtml += `<div style="text-align:center;padding:8px"><button type="button" class="btn btn-sm" id="ai-clear"><i data-lucide="rotate-ccw" style="width:12px;height:12px"></i> New query</button></div>`;
-  }
-
-  $el.innerHTML = formHtml + `<div id="ai-results">${resultsHtml}</div>`;
-
-  // Wire export
-  if (allAiTasks.length) wireExportToolbar('ai-export', () => allAiTasks, true);
-
-  const aiNotesMap = {};
-  for (const t of allAiTasks) aiNotesMap[t.taskId] = t.aiNotes || '';
-  wireClickToExpand($el, aiNotesMap);
-  wireSelectionButtons($el, allAiTasks, true, view);
-
-  // Wire sorting on each AI results table
-  $el.querySelectorAll('.ai-results-section').forEach(section => {
-    const table = section.querySelector('.data-table');
-    if (!table) return;
-    const rows = Array.from(table.querySelectorAll('tbody tr[data-id]'));
-    const sectionTasks = rows.map(r => allAiTasks.find(t => t.taskId === r.dataset.id)).filter(Boolean);
-    const sorter = makeSortController(sectionTasks, true, (sorted) => {
-      const tbody = table.querySelector('tbody');
-      tbody.innerHTML = '';
-      sorted.forEach((t, i) => {
-        const tr = document.createElement('tr');
-        tr.dataset.id = t.taskId;
-        const selected = isSelected(t.taskId);
-        if (selected) tr.className = 'row-selected';
-        tr.innerHTML = `<td class="col-sel"><button class="sel-btn${selected ? ' sel-active' : ''}" data-sel-id="${esc(t.taskId)}" title="${selected ? 'Remove from selection' : 'Add to selection'}"><i data-lucide="${selected ? 'check-circle' : 'circle'}" style="width:14px;height:14px"></i></button></td><td class="col-num">${i + 1}</td><td class="col-score">${scoreBar(t.score || 0)}</td><td class="col-id">${esc(t.taskId)}</td><td>${priorityBadge(t.aiPriority === 'High' ? 'P0' : t.aiPriority === 'Mid' ? 'P1' : 'P2')}</td><td>${aiActionBadge(t.aiAction)}</td><td>${groupBadge(t.aiGroup)}</td><td class="col-pod">--</td><td class="col-desc">${esc(t.aiDescription)}</td><td style="font-size:12px;color:var(--text-muted);max-width:250px">${esc(t.aiNotes || '--')}</td>`;
-        tbody.appendChild(tr);
-      });
-      sorter.updateIndicators(section);
-      wireClickToExpand(section, aiNotesMap);
-      wireSelectionButtons(section, allAiTasks, true, view);
-      if (window.lucide) lucide.createIcons();
-    });
-    sorter.wire(section);
-  });
-
-  if (window.lucide) lucide.createIcons();
-
-  if (isRunning) startTimer(job.startedAt);
-  else stopTimer();
-
-  // Restore form values from params
-  if (job.params) {
-    if (config.hasQuestion && job.params.ask) {
-      const el = document.getElementById('ai-ask');
-      if (el) el.value = job.params.ask;
-    }
-    if (config.hasGroup && job.params.group) {
-      const el = document.getElementById('ai-group');
-      if (el) el.value = job.params.group;
-    }
-  }
-
-  // Model change persists
-  document.getElementById('ai-model')?.addEventListener('change', (e) => setSelectedModel(e.target.value));
-
-  // Wire query history
-  if (config.hasQuestion) wireQueryHistory();
-
-  // Cancel button
-  document.getElementById('ai-cancel')?.addEventListener('click', () => cancelAiJob(view));
-
-  // Submit handler
-  if (!isRunning) {
-    const submit = () => {
-      const body = {};
-      if (config.hasQuestion) {
-        const ask = document.getElementById('ai-ask')?.value.trim();
-        if (!ask) return;
-        body.ask = ask;
-        addQueryToHistory(ask);
-      }
-      // Read group value directly
-      if (config.hasGroup) {
-        const groupVal = document.getElementById('ai-group')?.value;
-        if (groupVal) body.group = groupVal;
-      }
-      if (config.hasCache) body.cache = document.getElementById('ai-cache')?.checked || false;
-      // Read model — only include if non-empty (non-Default)
-      const modelVal = document.getElementById('ai-model')?.value;
-      if (modelVal) body.model = modelVal;
-      startAiJob(view, config.endpoint, body);
-    };
-    document.getElementById('ai-submit')?.addEventListener('click', submit);
-    document.getElementById('ai-ask')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
-  }
-
-  document.getElementById('ai-clear')?.addEventListener('click', () => resetAiJob(view));
-}
-
-// ── Selection Review View ───────────────────────────────────
-const PRIORITY_OPTIONS = ['', 'P0', 'P1', 'P2'];
-const STATUS_OPTIONS = ['', 'TRIAGE', 'TODO', 'Prioritized', 'Pre-Pro Ready', 'Prepro-In Progress', 'POD Working', 'Ready for Release', 'Live', 'BLOCK', 'HOLD'];
-
-function selectionFieldSelect(taskId, field, currentValue, original, options) {
-  const val = currentValue || '';
-  let html = `<select class="sel-override" data-task="${esc(taskId)}" data-field="${field}">`;
-  for (const opt of options) {
-    const label = opt || (original ? `${original} (original)` : '--');
-    const selected = val === opt ? ' selected' : '';
-    html += `<option value="${esc(opt)}"${selected}>${esc(label)}</option>`;
-  }
-  html += '</select>';
-  return html;
-}
-
-function selectionToCsv(items) {
-  const f = (v) => { const s = String(v ?? ''); return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const rows = ['ID,Priority,Status,Group,Assigned POD,Description,AI Notes'];
-  for (const t of items) {
-    const p = t.overrides?.priority || t.priority;
-    const s = t.overrides?.status || t.status;
-    const g = t.overrides?.group || t.group;
-    const pod = t.overrides?.assignedPod || t.assignedPod;
-    rows.push([t.id, p, s, g, pod, t.description, t.aiNotes].map(f).join(','));
-  }
-  return rows.join('\n');
-}
-
-function selectionToTsv(items) {
-  const rows = ['ID\tPriority\tStatus\tGroup\tAssigned POD\tDescription\tAI Notes'];
-  for (const t of items) {
-    const p = t.overrides?.priority || t.priority;
-    const s = t.overrides?.status || t.status;
-    const g = t.overrides?.group || t.group;
-    const pod = t.overrides?.assignedPod || t.assignedPod;
-    rows.push([t.id, p, s, g, pod, t.description, t.aiNotes].join('\t'));
-  }
-  return rows.join('\n');
-}
-
-export function renderSelectionView($el, state) {
-  const POD_OPTIONS = ['', ...[...new Set([...(state.pods || []), ...EXTRA_PODS])].sort()];
-  const scores = state.scores || {};
-  const items = getSelection();
-  for (const t of items) t.score = scores[t.id] ?? t.score ?? 0;
-
-  if (items.length === 0) {
-    $el.innerHTML = `<div class="empty-state">
-      <i data-lucide="clipboard-list" style="width:64px;height:64px;opacity:0.5;margin-bottom:16px"></i>
-      <h2>No tasks selected</h2>
-      <p>Select tasks from any list or AI result using the circle button on each row.</p>
-    </div>`;
-    if (window.lucide) lucide.createIcons();
-    return;
-  }
-
-  let html = '';
-
-  // Toolbar
-  html += '<div class="selection-toolbar">';
-  html += `<span class="selection-count">${items.length} task${items.length !== 1 ? 's' : ''} selected</span>`;
-  html += '<div class="selection-actions">';
-  html += '<button type="button" class="btn btn-sm" id="sel-copy"><i data-lucide="clipboard-copy" style="width:12px;height:12px"></i> Copy for Sheets</button>';
-  html += '<button type="button" class="btn btn-sm" id="sel-download"><i data-lucide="download" style="width:12px;height:12px"></i> Download CSV</button>';
-  html += '<button type="button" class="btn btn-sm btn-danger" id="sel-clear"><i data-lucide="trash-2" style="width:12px;height:12px"></i> Clear All</button>';
-  html += '</div></div>';
-
-  // Editable table
-  html += '<div id="sel-table-container">';
-  html += '<table class="data-table selection-table"><thead><tr>';
-  html += '<th class="col-sel"></th>';
-  html += '<th class="sortable" data-sort="score">Score</th>';
-  html += '<th>ID</th>';
-  html += '<th class="sortable" data-sort="priority">Priority</th>';
-  html += '<th class="sortable" data-sort="status">Status</th>';
-  html += '<th class="sortable" data-sort="group">Group</th>';
-  html += '<th class="sortable" data-sort="pod">Assigned POD</th>';
-  html += '<th>Description</th>';
-  html += '<th>AI Notes</th>';
-  html += '<th class="sortable" data-sort="source">Source</th>';
-  html += '</tr></thead><tbody>';
-
-  for (const t of items) {
-    const effPriority = t.overrides?.priority || t.priority;
-    const effStatus = t.overrides?.status || t.status;
-    const hasPriorityOverride = !!t.overrides?.priority;
-    const hasStatusOverride = !!t.overrides?.status;
-
-    html += `<tr data-id="${esc(t.id)}">`;
-    html += `<td class="col-sel"><button class="sel-btn sel-remove" data-sel-id="${esc(t.id)}" title="Remove from selection"><i data-lucide="x-circle" style="width:14px;height:14px"></i></button></td>`;
-    html += `<td class="col-score">${scoreBar(t.score || 0)}</td>`;
-    html += `<td class="col-id">${esc(t.id)}</td>`;
-    html += `<td>${selectionFieldSelect(t.id, 'priority', effPriority, t.priority, PRIORITY_OPTIONS)}${hasPriorityOverride ? '<span class="override-badge">edited</span>' : ''}</td>`;
-    html += `<td>${selectionFieldSelect(t.id, 'status', effStatus, t.status, STATUS_OPTIONS)}${hasStatusOverride ? '<span class="override-badge">edited</span>' : ''}</td>`;
-    const effPod = t.overrides?.assignedPod || t.assignedPod;
-    const hasPodOverride = !!t.overrides?.assignedPod;
-    html += `<td>${groupBadge(t.overrides?.group || t.group)}</td>`;
-    html += `<td>${selectionFieldSelect(t.id, 'assignedPod', effPod, t.assignedPod, POD_OPTIONS)}${hasPodOverride ? '<span class="override-badge">edited</span>' : ''}</td>`;
-    html += `<td class="col-desc">${esc(truncate(t.description, 200))}</td>`;
-    html += `<td><input type="text" class="sel-notes-input" data-task="${esc(t.id)}" value="${esc(t.aiNotes || '')}" placeholder="Add notes..."></td>`;
-    html += `<td><span class="source-badge">${esc(t.source || '--')}</span></td>`;
-    html += '</tr>';
-  }
-  html += '</tbody></table>';
-  html += `<div class="table-footer">${items.length} tasks in selection</div>`;
-  html += '</div>';
-
-  $el.innerHTML = html;
-  if (window.lucide) lucide.createIcons();
-
-  const selNotesMap = {};
-  for (const t of items) selNotesMap[t.id] = t.aiNotes || '';
-  wireClickToExpand($el, selNotesMap);
-
-  // Wire sorting
-  const selSortState = { field: null, dir: 'asc' };
-  function selSortItems(field) {
-    if (selSortState.field === field) selSortState.dir = selSortState.dir === 'asc' ? 'desc' : 'asc';
-    else { selSortState.field = field; selSortState.dir = 'asc'; }
-    const d = selSortState.dir === 'asc' ? 1 : -1;
-    items.sort((a, b) => {
-      let va, vb;
-      if (field === 'score') { return ((a.score || 0) - (b.score || 0)) * d; }
-      if (field === 'priority') { va = PRIORITY_RANK[a.overrides?.priority || a.priority] ?? 3; vb = PRIORITY_RANK[b.overrides?.priority || b.priority] ?? 3; return (va - vb) * d; }
-      if (field === 'status') { va = (a.overrides?.status || a.status || ''); vb = (b.overrides?.status || b.status || ''); return va.localeCompare(vb) * d; }
-      if (field === 'group') { va = (a.overrides?.group || a.group || ''); vb = (b.overrides?.group || b.group || ''); return va.localeCompare(vb) * d; }
-      if (field === 'pod') { va = (a.overrides?.assignedPod || a.assignedPod || ''); vb = (b.overrides?.assignedPod || b.assignedPod || ''); return va.localeCompare(vb) * d; }
-      if (field === 'source') { va = a.source || ''; vb = b.source || ''; return va.localeCompare(vb) * d; }
-      return 0;
-    });
-    renderSelectionView($el, state);
-  }
-  $el.querySelectorAll('th.sortable').forEach(th => {
-    th.addEventListener('click', () => selSortItems(th.dataset.sort));
-  });
-
-  // Wire remove buttons
-  $el.querySelectorAll('.sel-remove').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      removeFromSelection(btn.dataset.selId);
-    });
-  });
-
-  // Wire override selects
-  $el.querySelectorAll('.sel-override').forEach(sel => {
-    sel.addEventListener('change', () => {
-      updateSelectionOverride(sel.dataset.task, sel.dataset.field, sel.value);
-    });
-  });
-
-  // Wire notes inputs (debounced)
-  $el.querySelectorAll('.sel-notes-input').forEach(input => {
-    let timer;
-    input.addEventListener('input', () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => updateSelectionNotes(input.dataset.task, input.value), 400);
-    });
-  });
-
-  // Wire export buttons
-  document.getElementById('sel-copy')?.addEventListener('click', () => {
-    const tsv = selectionToTsv(getSelection());
-    navigator.clipboard.writeText(tsv).then(() => {
-      const btn = document.getElementById('sel-copy');
-      const orig = btn.innerHTML;
-      btn.innerHTML = '<i data-lucide="check" style="width:12px;height:12px"></i> Copied!';
-      if (window.lucide) lucide.createIcons();
-      setTimeout(() => { btn.innerHTML = orig; if (window.lucide) lucide.createIcons(); }, 2000);
-    });
-  });
-
-  document.getElementById('sel-download')?.addEventListener('click', () => {
-    downloadBlob(selectionToCsv(getSelection()), 'selection.csv', 'text/csv');
-  });
-
-  document.getElementById('sel-clear')?.addEventListener('click', () => {
-    if (confirm('Remove all tasks from selection?')) clearSelection();
-  });
 }

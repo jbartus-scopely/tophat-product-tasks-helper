@@ -22,7 +22,7 @@ test('client router renders Jira before the backlog-loaded guard', () => {
     assert.notEqual(backlogGuard, -1);
     assert.ok(jiraBranch < backlogGuard);
     assert.match(app, /normalizeView/);
-    assert.match(app, /view === 'jira' \? 'jira-dashboard'/);
+    assert.match(app, /if \(view === 'jira'\) return 'jira-dashboard'/);
     assert.match(app, /jiraTabForView/);
     assert.match(app, /renderJiraView/);
     assert.match(app, /\/api\/jira\/sections\/search/);

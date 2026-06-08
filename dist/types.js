@@ -1,4 +1,19 @@
 export const PRIORITY_ORDER = ['P0', 'P1', 'P2', ''];
+export const CSV_DISPLAY_COLUMNS = [
+    'ID',
+    'JIRA',
+    'Description/Problem',
+    'Priority',
+    'Status',
+    'Initiative',
+    'Priority pod',
+    'Reporter',
+    'Date',
+    'Comments',
+];
+export const CSV_REQUIRED_FIELDS = ['ID', 'Description/Problem', 'Status'];
+export const CSV_VALID_PRIORITIES = ['P0', 'P1', 'P2'];
+export const CSV_VALID_STATUSES = ['TRIAGE', 'TODO', 'Prioritized', 'HOLD'];
 export const STATUS_ORDER = [
     'Prioritized',
     'Pre-Pro Ready',

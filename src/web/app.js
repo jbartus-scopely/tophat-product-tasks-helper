@@ -1,17 +1,17 @@
 import {
   api,
-  onAiJobChange,
-  getAiJob,
-  getRunningAiView,
-  loadModels,
-  onSelectionChange,
-  getSelectionCount,
   getJiraDashboardVersions,
   saveJiraDashboardVersions,
   getJiraAllDataFilters,
   saveJiraAllDataFilters,
+  getStoredCsvData,
+  saveStoredCsvData,
+  getCsvDashboardFilters,
+  saveCsvDashboardFilters,
+  getCsvAllDataFilters,
+  saveCsvAllDataFilters,
 } from './shared.js';
-import { renderDashboard, renderTaskList, renderAiView, renderSelectionView, renderJiraView } from './components.js';
+import { renderJiraView, renderCsvDashboardView, renderCsvAllDataView } from './components.js';
 
 let state = {
   backlogLoaded: false,
@@ -19,7 +19,27 @@ let state = {
   groups: [],
   pods: [],
   scores: {},
-  aiAvailable: false,
+  csv: {
+    data: null,
+    uploadError: null,
+    openMultiDropdown: null,
+    dashboard: {
+      activeView: 'active',
+      filters: getCsvDashboardFilters(),
+      search: '',
+      expandedStatuses: {},
+    },
+    allData: {
+      filters: {
+        ...getCsvAllDataFilters(),
+        search: '',
+      },
+      sort: {
+        field: 'id',
+        dir: 'asc',
+      },
+    },
+  },
   jira: {
     activeTab: 'dashboard',
     status: 'idle',
@@ -50,86 +70,74 @@ let state = {
 
 const $view = document.getElementById('view-container');
 const $title = document.getElementById('page-title');
-const $aiBadge = document.getElementById('ai-badge');
 const $backlogBadge = document.getElementById('backlog-badge');
 const $csvInput = document.getElementById('csv-input');
 const $dropZone = document.getElementById('drop-zone');
 
 const VIEW_TITLES = {
-  dashboard: 'Dashboard',
-  triage: 'Triage',
-  backlog: 'Backlog',
-  inprogress: 'In Progress',
-  done: 'Done',
-  blocked: 'Blocked',
-  analyze: 'AI: Analyze',
-  groom: 'AI: Groom Triage',
-  prioritize: 'AI: Prioritize',
-  duplicates: 'AI: Find Duplicates',
-  selection: 'Selection',
+  'csv-dashboard': 'CSV Dashboard',
+  'csv-all-data': 'CSV All Data',
   'jira-dashboard': 'Jira Dashboard',
   'jira-all-data': 'Jira All Data',
 };
 
-const AI_VIEWS = ['analyze', 'groom', 'prioritize', 'duplicates'];
+const CSV_VIEWS = ['csv-dashboard', 'csv-all-data'];
 const JIRA_VIEWS = ['jira-dashboard', 'jira-all-data'];
 const JIRA_FOCUSABLE_INPUT_IDS = new Set(['jira-dashboard-search', 'jira-filter-search']);
+const CSV_FOCUSABLE_INPUT_IDS = new Set(['csv-dashboard-search', 'csv-filter-search']);
 
 // ── Init ─────────────────────────────────────────────────────
 async function init() {
-  const [backlog, aiStatus] = await Promise.all([
-    api('/api/backlog'),
-    api('/api/ai/status'),
-    loadModels(),
-  ]);
-
-  state.aiAvailable = aiStatus.available;
-  updateAiBadge();
-
-  if (backlog.loaded) {
-    state.backlogLoaded = true;
-    state.stats = await api('/api/stats');
-    state.groups = await api('/api/groups');
-    state.pods = await api('/api/pods');
-    state.scores = await api('/api/scores');
+  const storedCsv = getStoredCsvData();
+  if (storedCsv) {
+    applyCsvData(storedCsv);
+  } else {
     updateBacklogBadge();
   }
-
-  updateAiNavItems();
-  updateSelectionBadge();
-
-  onSelectionChange(() => {
-    updateSelectionBadge();
-    if (getView() === 'selection') {
-      const active = document.activeElement;
-      const isEditing = active && (active.classList.contains('sel-notes-input') || active.classList.contains('sel-override'));
-      if (!isEditing) {
-        renderSelectionView($view, state);
-        if (window.lucide) lucide.createIcons();
-      }
-    }
-  });
-
-  // When any AI job changes state, update nav spinners and re-render current AI view
-  onAiJobChange(() => {
-    try {
-      updateNavSpinners();
-      const current = getView();
-      if (AI_VIEWS.includes(current)) {
-        renderAiView($view, current, state);
-        if (window.lucide) lucide.createIcons();
-      }
-    } catch (e) {
-      console.error('AI view render error:', e);
-    }
-  });
 
   route();
 }
 
-function updateAiBadge() {
-  $aiBadge.textContent = state.aiAvailable ? 'AI: ready' : 'AI: unavailable';
-  $aiBadge.className = 'ai-badge ' + (state.aiAvailable ? 'available' : 'unavailable');
+function applyCsvData(data) {
+  state.csv = {
+    ...state.csv,
+    data,
+    uploadError: null,
+  };
+  state.backlogLoaded = data.tasks.length > 0;
+  state.stats = csvStats(data);
+  state.groups = uniqueCsvValues(data.tasks.map(task => task.initiative));
+  state.pods = uniqueCsvValues(data.tasks.map(task => task.priorityPod));
+  state.scores = {};
+  updateBacklogBadge();
+}
+
+function uniqueCsvValues(values) {
+  return [...new Set(values.map(value => String(value || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+}
+
+function csvStats(data) {
+  const byPriority = {};
+  const byStatus = {};
+  const byGroup = {};
+  for (const task of data.tasks) {
+    const priority = task.priority || '(none)';
+    const status = task.status || '(none)';
+    const initiative = task.initiative || '(none)';
+    byPriority[priority] = (byPriority[priority] || 0) + 1;
+    byStatus[status] = (byStatus[status] || 0) + 1;
+    byGroup[initiative] = (byGroup[initiative] || 0) + 1;
+  }
+  return {
+    total: data.tasks.length,
+    actionable: data.tasks.filter(task => ['TRIAGE', 'TODO', 'Prioritized'].includes(task.status)).length,
+    quickWins: data.tasks.filter(task => task.priority === 'P0' || task.priority === 'P1').length,
+    filtered: data.filtered || 0,
+    warnings: data.warnings || [],
+    byPriority,
+    byStatus,
+    byGroup,
+  };
 }
 
 function updateBacklogBadge() {
@@ -142,58 +150,38 @@ function updateBacklogBadge() {
   }
 }
 
-function updateSelectionBadge() {
-  const badge = document.getElementById('selection-count');
-  if (!badge) return;
-  const count = getSelectionCount();
-  badge.textContent = count;
-  badge.style.display = count > 0 ? 'inline-flex' : 'none';
+function showUploadError(message) {
+  state.csv = {
+    ...state.csv,
+    uploadError: message,
+  };
+  route();
+  const banner = document.createElement('div');
+  banner.className = 'warnings upload-error-banner';
+  banner.innerHTML = `<div class="warnings-title"><i data-lucide="triangle-alert" style="width:14px;height:14px;vertical-align:-2px"></i> Upload failed</div><p>${escapeHtml(message)}</p>`;
+  $view.prepend(banner);
+  if (window.lucide) lucide.createIcons();
 }
 
-function updateAiNavItems() {
-  for (const view of AI_VIEWS) {
-    const el = document.querySelector(`.nav-item[data-view="${view}"]`);
-    if (!el) continue;
-    if (!state.aiAvailable) el.classList.add('disabled');
-    else el.classList.remove('disabled');
-  }
-}
-
-function updateNavSpinners() {
-  for (const view of AI_VIEWS) {
-    const el = document.querySelector(`.nav-item[data-view="${view}"]`);
-    if (!el) continue;
-    const icon = el.querySelector('.nav-icon, .nav-spinner');
-    if (!icon) continue;
-
-    const job = getAiJob(view);
-    if (job.status === 'running') {
-      if (!icon.classList.contains('nav-spinner')) {
-        const spinner = document.createElement('span');
-        spinner.className = 'nav-spinner';
-        spinner.innerHTML = '<span class="spinner-sm"></span>';
-        icon.replaceWith(spinner);
-      }
-    } else {
-      if (icon.classList.contains('nav-spinner')) {
-        const lucideNames = { analyze: 'sparkles', groom: 'scan-search', prioritize: 'arrow-up-circle', duplicates: 'copy' };
-        const original = document.createElement('i');
-        original.setAttribute('data-lucide', lucideNames[view]);
-        original.className = 'nav-icon';
-        icon.replaceWith(original);
-        if (window.lucide) lucide.createIcons();
-      }
-    }
-  }
+function escapeHtml(value) {
+  const d = document.createElement('div');
+  d.textContent = value || '';
+  return d.innerHTML;
 }
 
 // ── Routing ──────────────────────────────────────────────────
 function getView() {
-  return (location.hash || '#dashboard').slice(1);
+  return (location.hash || '#jira-dashboard').slice(1);
 }
 
 function normalizeView(view) {
-  return view === 'jira' ? 'jira-dashboard' : view;
+  if (view === 'jira') return 'jira-dashboard';
+  if (view === 'dashboard') return 'csv-dashboard';
+  return view;
+}
+
+function isCsvView(view) {
+  return CSV_VIEWS.includes(view);
 }
 
 function isJiraView(view) {
@@ -219,27 +207,220 @@ function route() {
     if (state.jira.status === 'idle' && !state.jira.loaded) {
       loadJiraSections();
     }
-  } else if (view === 'selection') {
-    renderSelectionView($view, state);
-  } else if (!state.backlogLoaded) {
-    showEmptyState();
-    return;
-  } else if (AI_VIEWS.includes(view)) {
-    renderAiView($view, view, state);
-  } else {
-    switch (view) {
-      case 'dashboard': renderDashboard($view, state); break;
-      case 'triage':
-      case 'backlog':
-      case 'inprogress':
-      case 'done':
-      case 'blocked':
-        renderTaskList($view, view, state); break;
-      default: renderDashboard($view, state);
+  } else if (isCsvView(view)) {
+    if (!state.backlogLoaded) {
+      showEmptyState();
+      return;
     }
+    renderCsvView(view);
+  } else {
+    if (location.hash !== '#jira-dashboard') {
+      location.hash = '#jira-dashboard';
+      return;
+    }
+    renderJira();
   }
 
-  updateNavSpinners();
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderCsvView(view) {
+  if (view === 'csv-dashboard') {
+    renderCsvDashboard();
+    return;
+  }
+  renderCsvAllData();
+}
+
+function renderCsvAllData(options = {}) {
+  const focusSnapshot = options.preserveFocus ? getCsvFocusSnapshot() : null;
+  const dropdownScrollSnapshot = options.preserveDropdownScroll ? getCsvDropdownScrollSnapshot() : null;
+  renderCsvAllDataView($view, state, {
+    onFilterChange: setCsvAllDataFilter,
+    onSortChange: setCsvAllDataSort,
+    onMultiDropdownToggle: toggleCsvMultiDropdown,
+    onMultiDropdownClose: closeCsvMultiDropdown,
+  });
+  restoreCsvFocus(focusSnapshot);
+  restoreCsvDropdownScroll(dropdownScrollSnapshot);
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderActiveCsvView(options = {}) {
+  const view = normalizeView(getView());
+  if (view === 'csv-all-data') renderCsvAllData(options);
+  else renderCsvDashboard(options);
+}
+
+function setCsvAllDataFilter(name, value) {
+  const dropdownByFilter = {
+    status: 'csv-filter-status',
+    priority: 'csv-filter-priority',
+    initiative: 'csv-filter-initiative',
+    priorityPod: 'csv-filter-priority-pod',
+    reporter: 'csv-filter-reporter',
+  };
+  const filters = {
+    ...state.csv.allData.filters,
+    [name]: value,
+  };
+  state.csv.allData = {
+    ...state.csv.allData,
+    filters,
+  };
+  state.csv.openMultiDropdown = dropdownByFilter[name] || state.csv.openMultiDropdown;
+  saveCsvAllDataFilters(filters);
+  renderCsvAllData({ preserveFocus: name === 'search', preserveDropdownScroll: name !== 'search' });
+  if (window.lucide) lucide.createIcons();
+}
+
+function setCsvAllDataSort(field) {
+  const current = state.csv.allData.sort;
+  const dir = current.field === field && current.dir === 'asc' ? 'desc' : 'asc';
+  state.csv.allData = {
+    ...state.csv.allData,
+    sort: { field, dir },
+  };
+  renderCsvAllData();
+  if (window.lucide) lucide.createIcons();
+}
+
+function getCsvFocusSnapshot() {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLInputElement) || !CSV_FOCUSABLE_INPUT_IDS.has(active.id)) return null;
+  return {
+    id: active.id,
+    start: active.selectionStart,
+    end: active.selectionEnd,
+  };
+}
+
+function restoreCsvFocus(snapshot) {
+  if (!snapshot) return;
+  const input = document.getElementById(snapshot.id);
+  if (!(input instanceof HTMLInputElement)) return;
+  input.focus();
+  if (typeof snapshot.start === 'number' && typeof snapshot.end === 'number') {
+    try {
+      input.setSelectionRange(snapshot.start, snapshot.end);
+    } catch {
+      // Some input types do not support selection ranges.
+    }
+  }
+}
+
+function getCsvDropdownScrollSnapshot() {
+  const openId = state.csv.openMultiDropdown;
+  if (!openId) return null;
+  const menu = [...document.querySelectorAll('[data-csv-multi-menu]')]
+    .find(el => el.dataset.csvMultiMenu === openId);
+  if (!(menu instanceof HTMLElement)) return null;
+  return {
+    id: openId,
+    scrollTop: menu.scrollTop,
+  };
+}
+
+function restoreCsvDropdownScroll(snapshot) {
+  if (!snapshot) return;
+  const menu = [...document.querySelectorAll('[data-csv-multi-menu]')]
+    .find(el => el.dataset.csvMultiMenu === snapshot.id);
+  if (!(menu instanceof HTMLElement)) return;
+  menu.scrollTop = snapshot.scrollTop;
+}
+
+function renderCsvDashboard(options = {}) {
+  const focusSnapshot = options.preserveFocus ? getCsvFocusSnapshot() : null;
+  const dropdownScrollSnapshot = options.preserveDropdownScroll ? getCsvDropdownScrollSnapshot() : null;
+  renderCsvDashboardView($view, state, {
+    onDashboardTabChange: setCsvDashboardTab,
+    onFilterChange: setCsvDashboardFilter,
+    onSearchChange: setCsvDashboardSearch,
+    onStatusGroupToggle: toggleCsvStatusGroup,
+    onStatusGroupsSet: setCsvStatusGroups,
+    onMultiDropdownToggle: toggleCsvMultiDropdown,
+    onMultiDropdownClose: closeCsvMultiDropdown,
+  });
+  restoreCsvFocus(focusSnapshot);
+  restoreCsvDropdownScroll(dropdownScrollSnapshot);
+}
+
+function setCsvDashboardTab(activeView) {
+  state.csv.dashboard = {
+    ...state.csv.dashboard,
+    activeView: activeView === 'hold' ? 'hold' : 'active',
+  };
+  renderCsvDashboard();
+  if (window.lucide) lucide.createIcons();
+}
+
+function setCsvDashboardFilter(name, value) {
+  const dropdownByFilter = {
+    status: 'csv-dashboard-status-filter',
+    initiative: 'csv-dashboard-initiative-filter',
+  };
+  const filters = {
+    ...state.csv.dashboard.filters,
+    [name]: value,
+  };
+  state.csv.dashboard = {
+    ...state.csv.dashboard,
+    filters,
+  };
+  state.csv.openMultiDropdown = dropdownByFilter[name] || state.csv.openMultiDropdown;
+  saveCsvDashboardFilters(filters);
+  renderCsvDashboard({ preserveDropdownScroll: true });
+  if (window.lucide) lucide.createIcons();
+}
+
+function setCsvDashboardSearch(search) {
+  state.csv.dashboard = {
+    ...state.csv.dashboard,
+    search,
+  };
+  renderCsvDashboard({ preserveFocus: true });
+  if (window.lucide) lucide.createIcons();
+}
+
+function toggleCsvStatusGroup(status) {
+  const expanded = state.csv.dashboard.expandedStatuses?.[status] !== false;
+  const expandedStatuses = {
+    ...state.csv.dashboard.expandedStatuses,
+    [status]: !expanded,
+  };
+  state.csv.dashboard = {
+    ...state.csv.dashboard,
+    expandedStatuses,
+  };
+  renderCsvDashboard();
+  if (window.lucide) lucide.createIcons();
+}
+
+function setCsvStatusGroups(statuses, expanded) {
+  const expandedStatuses = {
+    ...state.csv.dashboard.expandedStatuses,
+  };
+  for (const status of statuses) {
+    expandedStatuses[status] = expanded;
+  }
+  state.csv.dashboard = {
+    ...state.csv.dashboard,
+    expandedStatuses,
+  };
+  renderCsvDashboard();
+  if (window.lucide) lucide.createIcons();
+}
+
+function toggleCsvMultiDropdown(id) {
+  state.csv.openMultiDropdown = state.csv.openMultiDropdown === id ? null : id;
+  renderActiveCsvView();
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeCsvMultiDropdown() {
+  if (!state.csv.openMultiDropdown) return;
+  state.csv.openMultiDropdown = null;
+  renderActiveCsvView();
   if (window.lucide) lucide.createIcons();
 }
 
@@ -474,7 +655,7 @@ function showEmptyState() {
   $view.innerHTML = `
     <div class="empty-state">
       <i data-lucide="file-spreadsheet" style="width:64px;height:64px;opacity:0.5;margin-bottom:16px"></i>
-      <h2>No backlog loaded</h2>
+      <h2>No CSV uploaded</h2>
       <p>Upload a CSV file or drop it anywhere on the page to get started.</p>
       <button class="btn btn-primary" id="empty-upload-btn"><i data-lucide="upload" style="width:14px;height:14px"></i> Upload CSV</button>
     </div>`;
@@ -492,19 +673,15 @@ async function uploadFile(file) {
   try {
     const result = await api('/api/upload', { method: 'POST', body: form });
     if (result.error) {
-      $view.innerHTML = `<div class="empty-state"><h2>Upload failed</h2><p>${result.error}</p></div>`;
+      showUploadError(result.error);
       return;
     }
-    state.backlogLoaded = true;
-    state.stats = result.stats;
-    state.groups = await api('/api/groups');
-    state.pods = await api('/api/pods');
-    state.scores = await api('/api/scores');
-    updateBacklogBadge();
-    location.hash = '#dashboard';
+    const stored = saveStoredCsvData(result);
+    applyCsvData(stored || result);
+    location.hash = '#csv-dashboard';
     route();
   } catch (e) {
-    $view.innerHTML = `<div class="empty-state"><h2>Upload failed</h2><p>${e.message}</p></div>`;
+    showUploadError(e.message);
   }
 }
 
