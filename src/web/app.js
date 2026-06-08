@@ -67,10 +67,12 @@ const VIEW_TITLES = {
   prioritize: 'AI: Prioritize',
   duplicates: 'AI: Find Duplicates',
   selection: 'Selection',
-  jira: 'Jira Watch',
+  'jira-dashboard': 'Jira Dashboard',
+  'jira-all-data': 'Jira All Data',
 };
 
 const AI_VIEWS = ['analyze', 'groom', 'prioritize', 'duplicates'];
+const JIRA_VIEWS = ['jira-dashboard', 'jira-all-data'];
 const JIRA_FOCUSABLE_INPUT_IDS = new Set(['jira-dashboard-search', 'jira-filter-search']);
 
 // ── Init ─────────────────────────────────────────────────────
@@ -190,8 +192,20 @@ function getView() {
   return (location.hash || '#dashboard').slice(1);
 }
 
+function normalizeView(view) {
+  return view === 'jira' ? 'jira-dashboard' : view;
+}
+
+function isJiraView(view) {
+  return JIRA_VIEWS.includes(view);
+}
+
+function jiraTabForView(view) {
+  return view === 'jira-all-data' ? 'all-data' : 'dashboard';
+}
+
 function route() {
-  const view = getView();
+  const view = normalizeView(getView());
 
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.view === view);
@@ -199,7 +213,8 @@ function route() {
 
   $title.textContent = VIEW_TITLES[view] || 'Dashboard';
 
-  if (view === 'jira') {
+  if (isJiraView(view)) {
+    state.jira.activeTab = jiraTabForView(view);
     renderJira();
     if (state.jira.status === 'idle' && !state.jira.loaded) {
       loadJiraSections();
@@ -279,7 +294,6 @@ function renderJira(options = {}) {
   const dropdownScrollSnapshot = options.preserveDropdownScroll ? getJiraDropdownScrollSnapshot() : null;
   renderJiraView($view, state, {
     onRefresh: refreshJira,
-    onTabChange: setJiraTab,
     onDashboardTabChange: setJiraDashboardTab,
     onDashboardVersionChange: setJiraDashboardVersions,
     onDashboardSearchChange: setJiraDashboardSearch,
@@ -292,12 +306,6 @@ function renderJira(options = {}) {
   });
   restoreJiraFocus(focusSnapshot);
   restoreJiraDropdownScroll(dropdownScrollSnapshot);
-}
-
-function setJiraTab(tab) {
-  state.jira.activeTab = tab;
-  renderJira();
-  if (window.lucide) lucide.createIcons();
 }
 
 function setJiraDashboardTab(tab) {
@@ -420,7 +428,7 @@ async function loadJiraSections() {
     loaded: false,
     startedAt: Date.now(),
   };
-  if (getView() === 'jira') renderJira();
+  if (isJiraView(normalizeView(getView()))) renderJira();
 
   try {
     const result = await api('/api/jira/sections/search', { method: 'POST' });
@@ -459,7 +467,7 @@ async function loadJiraSections() {
     };
   }
 
-  if (getView() === 'jira') renderJira();
+  if (isJiraView(normalizeView(getView()))) renderJira();
 }
 
 function showEmptyState() {

@@ -682,11 +682,6 @@ function simpleSpinnerHtml(text) {
 }
 
 // ── Jira View ───────────────────────────────────────────────
-const JIRA_TABS = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'all-data', label: 'All Data' },
-];
-
 const JIRA_DASHBOARD_TABS = [
   { id: 'versions', label: 'Versions' },
   { id: 'not-started', label: 'Not started' },
@@ -698,14 +693,16 @@ const NO_STATUS_LABEL = 'No status';
 const NO_PRIORITY_LABEL = 'No priority';
 const NO_POD_LABEL = 'No pod';
 const NO_LABEL_LABEL = 'No label';
-const JIRA_VISIBLE_LABELS = [
-  'BetterCasual',
-  'BetterSocial',
-  'Other',
-  'ReturnExperience',
-  'TimeToRoll',
-  'UXFoundations',
+const JIRA_LABELS = [
+  { label: 'BetterCasual', color: 'var(--accent)' },
+  { label: 'BetterSocial', color: 'var(--green)' },
+  { label: 'Other', color: 'var(--text-muted)' },
+  { label: 'ReturnExperience', color: 'var(--purple)' },
+  { label: 'TimeToRoll', color: 'var(--orange)' },
+  { label: 'UXFoundations', color: 'var(--cyan)' },
 ];
+const JIRA_VISIBLE_LABELS = JIRA_LABELS.map(item => item.label);
+const JIRA_NO_LABEL_COLOR = 'var(--text-dim)';
 const JIRA_ALL_DATA_GROUP_BY_OPTIONS = [
   { value: 'none', label: 'None' },
   { value: 'status', label: 'Status' },
@@ -803,6 +800,19 @@ function jiraVisibleLabels(labels) {
   if (!Array.isArray(labels)) return [];
   const normalized = new Set(labels.map(label => String(label || '').trim().toLowerCase()).filter(Boolean));
   return JIRA_VISIBLE_LABELS.filter(label => normalized.has(label.toLowerCase()));
+}
+
+function jiraPrimaryLabel(issue) {
+  const labels = jiraVisibleLabels(issue.labels);
+  return labels[0] || NO_LABEL_LABEL;
+}
+
+function jiraLabelColor(label) {
+  return JIRA_LABELS.find(item => item.label === label)?.color || JIRA_NO_LABEL_COLOR;
+}
+
+function jiraLabelStyle(label) {
+  return `--jira-label-color:${jiraLabelColor(label)}`;
 }
 
 function jiraLabelsHtml(labels) {
@@ -1141,16 +1151,49 @@ function versionsDashboardHtml(issues, dashboard) {
   return html;
 }
 
+function jiraLabelBuckets(issues) {
+  const buckets = new Map([...JIRA_VISIBLE_LABELS, NO_LABEL_LABEL].map(label => [label, []]));
+  for (const issue of issues) {
+    const label = jiraPrimaryLabel(issue);
+    if (!buckets.has(label)) buckets.set(label, []);
+    buckets.get(label).push(issue);
+  }
+  return [...buckets.entries()]
+    .map(([label, rows]) => ({ label, rows, count: rows.length }))
+    .filter(bucket => bucket.count > 0 || bucket.label !== NO_LABEL_LABEL);
+}
+
+function jiraNonFixedIssues(issues) {
+  return issues.filter(issue => !isFixedJiraStatus(issue.status));
+}
+
+function versionBugStackHtml(buckets, total, barHeight) {
+  if (total === 0) return `<div class="jira-version-bug-bar jira-version-bug-bar-empty" style="height:${barHeight}px"></div>`;
+  const segments = buckets
+    .filter(bucket => bucket.count > 0)
+    .map(bucket => `<span class="jira-version-bug-segment" style="${jiraLabelStyle(bucket.label)};flex:${bucket.count}" title="${esc(bucket.label)}: ${bucket.count}"></span>`)
+    .join('');
+  return `<div class="jira-version-bug-bar jira-version-bug-bar-stacked" style="height:${barHeight}px">${segments}</div>`;
+}
+
+function fixedIssueBreakdownHtml(buckets) {
+  const visibleBuckets = buckets.filter(bucket => bucket.count > 0);
+  if (visibleBuckets.length === 0) return '';
+  return `<div class="jira-version-bug-tooltip-breakdown">${visibleBuckets.map(bucket => `<span style="${jiraLabelStyle(bucket.label)}"><i></i>${esc(bucket.label)} ${bucket.count}</span>`).join('')}</div>`;
+}
+
 function fixedIssueTooltipHtml(rows) {
   if (rows.length === 0) return '<div class="jira-version-bug-tooltip-empty">No fixed issues for this version.</div>';
 
+  const buckets = jiraLabelBuckets(rows);
   const visibleRows = rows.slice(0, 10);
   let html = '<div class="jira-version-bug-tooltip-title">Fixed bugs</div>';
+  html += fixedIssueBreakdownHtml(buckets);
   for (const issue of visibleRows) {
     const summary = truncate(issue.summary || issue.key || 'Untitled Jira issue', 92);
     html += `<div class="jira-version-bug-tooltip-item">
       <div class="jira-version-bug-tooltip-summary">${esc(summary)}</div>
-      <div class="jira-version-bug-tooltip-meta"><span>${esc(issue.status || '--')}</span><span>${esc(issue.pod || '--')}</span></div>
+      <div class="jira-version-bug-tooltip-meta"><span>${esc(issue.status || '--')}</span><span>${esc(jiraPrimaryLabel(issue))}</span><span>${esc(issue.pod || '--')}</span></div>
     </div>`;
   }
   if (rows.length > visibleRows.length) {
@@ -1180,12 +1223,39 @@ function versionBugFixWidgetHtml(issues, dashboard) {
     html += '<div class="jira-version-bug-chart" aria-label="Fixed bugs by version">';
     for (const version of versions) {
       const rows = rowsByVersion.get(version) || [];
+      const buckets = jiraLabelBuckets(rows);
       const barHeight = rows.length === 0 ? 4 : Math.max(12, Math.round((rows.length / maxCount) * 44));
       html += `<div class="jira-version-bug-column" tabindex="0" aria-label="${esc(version)}: ${rows.length} fixed issues">
         <div class="jira-version-bug-count">${rows.length}</div>
-        <div class="jira-version-bug-bar-track"><div class="jira-version-bug-bar" style="height:${barHeight}px"></div></div>
+        <div class="jira-version-bug-bar-track">${versionBugStackHtml(buckets, rows.length, barHeight)}</div>
         <div class="jira-version-bug-label" title="${esc(version)}">${esc(version)}</div>
         <div class="jira-version-bug-tooltip" role="tooltip">${fixedIssueTooltipHtml(rows)}</div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  html += '</section>';
+  return html;
+}
+
+function pendingFixesByLabelWidgetHtml(issues) {
+  const pendingIssues = jiraNonFixedIssues(issues);
+  const buckets = jiraLabelBuckets(pendingIssues);
+  const maxCount = Math.max(1, ...buckets.map(bucket => bucket.count));
+  let html = '<section class="jira-section-card jira-label-widget">';
+  html += `<div class="jira-section-header"><div><div class="jira-section-title">Pending fixes by label</div><div class="jira-section-subtitle">${pendingIssues.length} pending</div></div></div>`;
+
+  if (pendingIssues.length === 0) {
+    html += jiraInlineEmptyHtml('No pending fixes found.');
+  } else {
+    html += '<div class="jira-label-fix-chart" aria-label="Pending fixes by label">';
+    for (const bucket of buckets) {
+      const width = bucket.count === 0 ? 0 : Math.max(8, Math.round((bucket.count / maxCount) * 100));
+      html += `<div class="jira-label-fix-row">
+        <div class="jira-label-fix-name"><span class="jira-label-dot" style="${jiraLabelStyle(bucket.label)}"></span><span>${esc(bucket.label)}</span></div>
+        <div class="jira-label-fix-track"><span class="jira-label-fix-bar" style="${jiraLabelStyle(bucket.label)};width:${width}%"></span></div>
+        <div class="jira-label-fix-count">${bucket.count}</div>
       </div>`;
     }
     html += '</div>';
@@ -1241,6 +1311,7 @@ function jiraDashboardShellHtml(jira, loaded) {
   html += `<div class="summary-card green"><div class="summary-card-top"><i data-lucide="list-checks" class="summary-icon"></i></div><div class="summary-value">${totalIssues}</div><div class="summary-label">Loaded Issues</div></div>`;
   html += `<div class="summary-card yellow"><div class="summary-card-top"><i data-lucide="triangle-alert" class="summary-icon"></i></div><div class="summary-value">${warningCount}</div><div class="summary-label">Warnings</div></div>`;
   html += versionBugFixWidgetHtml(issues, dashboard);
+  html += pendingFixesByLabelWidgetHtml(issues);
   html += '</div>';
   html += dashboardTabsHtml(activeView);
   html += dashboardControlsHtml(dashboard, versionOptions, activeView);
@@ -1367,12 +1438,6 @@ export function renderJiraView($el, state, actions = {}) {
 
   let html = '<div class="jira-shell">';
   html += '<div class="jira-toolbar">';
-  html += '<div class="jira-tabs" role="tablist" aria-label="Jira views">';
-  for (const tab of JIRA_TABS) {
-    const active = tab.id === activeTab;
-    html += `<button type="button" class="jira-tab${active ? ' active' : ''}" data-jira-tab="${tab.id}" role="tab" aria-selected="${active}">${esc(tab.label)}</button>`;
-  }
-  html += '</div>';
   html += '<div class="jira-actions">';
   if (lastLoaded) html += `<span class="jira-last-loaded">Updated ${esc(lastLoaded)}</span>`;
   html += `<button type="button" class="btn btn-primary" id="jira-refresh" ${isLoading ? 'disabled' : ''}><i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Refresh</button>`;
@@ -1393,12 +1458,6 @@ export function renderJiraView($el, state, actions = {}) {
   openMultiMenus($el, jira.openMultiDropdown || null);
 
   document.getElementById('jira-refresh')?.addEventListener('click', () => actions.onRefresh?.());
-  $el.querySelectorAll('[data-jira-tab]').forEach(button => {
-    button.addEventListener('click', () => {
-      const tab = button.dataset.jiraTab;
-      if (tab && tab !== activeTab) actions.onTabChange?.(tab);
-    });
-  });
   $el.querySelectorAll('[data-jira-dashboard-tab]').forEach(button => {
     button.addEventListener('click', () => {
       const tab = button.dataset.jiraDashboardTab;

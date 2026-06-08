@@ -8,24 +8,29 @@ function readProjectFile(path) {
 test('web sidebar exposes a separated Jira route', () => {
     const html = readProjectFile('src/web/index.html');
     assert.match(html, /<div class="nav-label">Jira<\/div>/);
-    assert.match(html, /href="#jira"/);
-    assert.match(html, /data-view="jira"/);
-    assert.match(html, /Jira Watch/);
+    assert.match(html, /href="#jira-dashboard"/);
+    assert.match(html, /data-view="jira-dashboard"/);
+    assert.match(html, /href="#jira-all-data"/);
+    assert.match(html, /data-view="jira-all-data"/);
+    assert.match(html, /All Data/);
 });
 test('client router renders Jira before the backlog-loaded guard', () => {
     const app = readProjectFile('src/web/app.js');
-    const jiraBranch = app.indexOf("view === 'jira'");
+    const jiraBranch = app.indexOf('isJiraView(view)');
     const backlogGuard = app.indexOf('!state.backlogLoaded');
     assert.notEqual(jiraBranch, -1);
     assert.notEqual(backlogGuard, -1);
     assert.ok(jiraBranch < backlogGuard);
+    assert.match(app, /normalizeView/);
+    assert.match(app, /view === 'jira' \? 'jira-dashboard'/);
+    assert.match(app, /jiraTabForView/);
     assert.match(app, /renderJiraView/);
     assert.match(app, /\/api\/jira\/sections\/search/);
 });
-test('Jira shell has tabs, refresh, loading, and error states', () => {
+test('Jira shell has refresh, loading, and error states without top-level tabs', () => {
     const components = readProjectFile('src/web/components.js');
-    assert.match(components, /Dashboard/);
-    assert.match(components, /All Data/);
+    assert.doesNotMatch(components, /JIRA_TABS/);
+    assert.doesNotMatch(components, /data-jira-tab/);
     assert.match(components, /id="jira-refresh"/);
     assert.match(components, /spinner-container/);
     assert.match(components, /errorHtml/);
@@ -40,6 +45,12 @@ test('Jira dashboard renders sub-tabs, version filters, and collapsible groups',
     assert.match(components, /jira-dashboard-version-filter/);
     assert.match(components, /versionBugFixWidgetHtml/);
     assert.match(components, /Bugs fixed by version/);
+    assert.match(components, /jiraLabelBuckets/);
+    assert.match(components, /versionBugStackHtml/);
+    assert.match(components, /jira-version-bug-segment/);
+    assert.match(components, /Pending fixes by label/);
+    assert.match(components, /pendingFixesByLabelWidgetHtml/);
+    assert.match(components, /jira-label-fix-row/);
     assert.match(components, /isFixedJiraStatus/);
     assert.match(components, /jira-version-bug-tooltip/);
     assert.match(components, /wireJiraVersionBugTooltips/);

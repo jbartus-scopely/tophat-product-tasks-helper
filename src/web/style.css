@@ -995,30 +995,6 @@ body {
   flex-wrap: wrap;
 }
 
-.jira-tabs {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.jira-tab {
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  border-radius: var(--radius-sm);
-  padding: 7px 12px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.jira-tab:hover { color: var(--text); background: var(--bg-hover); }
-.jira-tab.active { color: var(--accent); background: var(--accent-dim); }
-
 .jira-actions {
   display: inline-flex;
   align-items: center;
@@ -1033,13 +1009,14 @@ body {
 }
 
 .jira-summary-row {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr);
+  grid-template-columns: minmax(112px, 0.7fr) minmax(112px, 0.7fr) minmax(0, 2fr) minmax(220px, 1.15fr);
   align-items: stretch;
   margin-bottom: 16px;
 }
 
 .jira-summary-row .summary-card,
-.jira-summary-row .jira-version-widget {
+.jira-summary-row .jira-version-widget,
+.jira-summary-row .jira-label-widget {
   min-width: 0;
 }
 
@@ -1148,7 +1125,6 @@ body {
 
 .jira-version-bug-column:focus-visible .jira-version-bug-bar,
 .jira-version-bug-column:hover .jira-version-bug-bar {
-  background: linear-gradient(180deg, var(--accent), var(--green));
   box-shadow: 0 0 0 1px #58a6ff55, 0 8px 20px #00000033;
 }
 
@@ -1172,7 +1148,25 @@ body {
   min-height: 4px;
   border-radius: 6px 6px 2px 2px;
   background: linear-gradient(180deg, #58a6ff, #3fb950);
+  overflow: hidden;
   transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+.jira-version-bug-bar-stacked {
+  display: flex;
+  flex-direction: column-reverse;
+  background: var(--bg-surface2);
+  border: 1px solid var(--border-light);
+}
+
+.jira-version-bug-bar-empty {
+  background: var(--bg-surface2);
+  border: 1px solid var(--border);
+}
+
+.jira-version-bug-segment {
+  min-height: 3px;
+  background: var(--jira-label-color);
 }
 
 .jira-version-bug-label {
@@ -1230,6 +1224,31 @@ body {
   font-weight: 700;
 }
 
+.jira-version-bug-tooltip-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.jira-version-bug-tooltip-breakdown span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.jira-version-bug-tooltip-breakdown i {
+  width: 7px;
+  height: 7px;
+  background: var(--jira-label-color);
+  border-radius: 50%;
+}
+
 .jira-version-bug-tooltip-item {
   display: grid;
   gap: 4px;
@@ -1264,6 +1283,70 @@ body {
 .jira-version-bug-tooltip-more {
   padding-top: 8px;
   border-top: 1px solid var(--border);
+}
+
+.jira-label-widget .jira-section-header {
+  margin-bottom: 8px;
+}
+
+.jira-label-fix-chart {
+  display: grid;
+  gap: 7px;
+}
+
+.jira-label-fix-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 1fr) minmax(70px, 1fr) 28px;
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
+}
+
+.jira-label-fix-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.jira-label-fix-name span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jira-label-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  background: var(--jira-label-color);
+  border-radius: 50%;
+}
+
+.jira-label-fix-track {
+  height: 8px;
+  background: var(--bg-surface2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.jira-label-fix-bar {
+  display: block;
+  height: 100%;
+  background: var(--jira-label-color);
+  border-radius: inherit;
+}
+
+.jira-label-fix-count {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right;
 }
 
 .jira-group {
@@ -1670,7 +1753,8 @@ body {
   .charts-row { grid-template-columns: 1fr; }
   .summary-row { grid-template-columns: repeat(2, 1fr); }
   .jira-summary-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .jira-summary-row .jira-version-widget { grid-column: 1 / -1; }
+  .jira-summary-row .jira-version-widget,
+  .jira-summary-row .jira-label-widget { grid-column: 1 / -1; }
   .task-detail-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
