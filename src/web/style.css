@@ -679,9 +679,6 @@ body {
   white-space: nowrap;
 }
 
-.badge-p0 { background: var(--red-dim); color: var(--red); }
-.badge-p1 { background: var(--yellow-dim); color: var(--yellow); }
-.badge-p2 { background: var(--accent-dim); color: var(--accent); }
 .badge-none { background: var(--bg); color: var(--text-dim); }
 
 .badge-status {
@@ -722,24 +719,6 @@ body {
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
-}
-
-.csv-shell .badge-p0 {
-  background: var(--purple-dim);
-  border-color: #bc8cff55;
-  color: var(--purple);
-}
-
-.csv-shell .badge-p1 {
-  background: var(--green-dim);
-  border-color: #3fb95055;
-  color: var(--green);
-}
-
-.csv-shell .badge-p2 {
-  background: var(--yellow-dim);
-  border-color: #d2992255;
-  color: var(--yellow);
 }
 
 .csv-shell .badge-none {

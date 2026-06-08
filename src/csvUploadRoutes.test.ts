@@ -31,8 +31,8 @@ test('uploading a valid CSV returns parsed task rows and warnings', async () => 
   const app = createApp();
   const csv = [
     'Date,JIRA,ID,Reporter,Description/Problem,Priority,Status,Initiative,Priority pod,Comments',
-    '2026-06-01,TOP-1,FG-1,Ana,Fix tutorial,P0,TODO,Onboarding,Pod31,Needs copy',
-    '2026-06-02,TOP-2,FG-1,Ben,Fix menu,P1,TRIAGE,Menus,Pod32,Duplicate row',
+    '2026-06-01,TOP-1,FG-1,Ana,Fix tutorial,Critical,TODO,Onboarding,Pod31,Needs copy',
+    '2026-06-02,TOP-2,FG-1,Ben,Fix menu,Major,TRIAGE,Menus,Pod32,Duplicate row',
   ].join('\n');
 
   const response = await app.request('/api/upload', {
@@ -55,7 +55,7 @@ test('uploading valid CSV does not persist backlog data on the server', async ()
   const app = createApp();
   const csv = [
     'Date,JIRA,ID,Reporter,Description/Problem,Priority,Status,Initiative,Priority pod,Comments',
-    '2026-06-01,TOP-1,FG-1,Ana,Fix tutorial,P0,TODO,Onboarding,Pod31,Needs copy',
+    '2026-06-01,TOP-1,FG-1,Ana,Fix tutorial,Critical,TODO,Onboarding,Pod31,Needs copy',
   ].join('\n');
 
   await app.request('/api/upload', {

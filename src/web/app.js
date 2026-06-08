@@ -132,6 +132,7 @@ function csvStats(data) {
   const byPriority = {};
   const byStatus = {};
   const byGroup = {};
+  const keyPriority = (value) => String(value || '').trim().toLowerCase();
   for (const task of data.tasks) {
     const priority = task.priority || '(none)';
     const status = task.status || '(none)';
@@ -143,7 +144,7 @@ function csvStats(data) {
   return {
     total: data.tasks.length,
     actionable: data.tasks.filter(task => ['TRIAGE', 'TODO', 'Prioritized'].includes(task.status)).length,
-    quickWins: data.tasks.filter(task => task.priority === 'P0' || task.priority === 'P1').length,
+    quickWins: data.tasks.filter(task => ['critical', 'major', 'p0', 'p1'].includes(keyPriority(task.priority))).length,
     filtered: data.filtered || 0,
     warnings: data.warnings || [],
     byPriority,
@@ -287,6 +288,7 @@ function renderCsvAllData(options = {}) {
   const dropdownScrollSnapshot = options.preserveDropdownScroll ? getCsvDropdownScrollSnapshot() : null;
   renderCsvAllDataView($view, state, {
     onFilterChange: setCsvAllDataFilter,
+    onClearFilters: clearCsvAllDataFilters,
     onSortChange: setCsvAllDataSort,
     onMultiDropdownToggle: toggleCsvMultiDropdown,
     onMultiDropdownClose: closeCsvMultiDropdown,
@@ -315,6 +317,7 @@ function renderCsvList(listId, options = {}) {
   const dropdownScrollSnapshot = options.preserveDropdownScroll ? getCsvDropdownScrollSnapshot() : null;
   renderCsvAllDataView($view, state, {
     onFilterChange: setCsvAllDataFilter,
+    onClearFilters: clearCsvAllDataFilters,
     onSortChange: setCsvAllDataSort,
     onMultiDropdownToggle: toggleCsvMultiDropdown,
     onMultiDropdownClose: closeCsvMultiDropdown,
@@ -599,7 +602,27 @@ function setCsvAllDataFilter(name, value) {
   };
   state.csv.openMultiDropdown = dropdownByFilter[name] || state.csv.openMultiDropdown;
   saveCsvAllDataFilters(filters);
-  renderCsvAllData({ preserveFocus: name === 'search', preserveDropdownScroll: name !== 'search' });
+  renderActiveCsvView({ preserveFocus: name === 'search', preserveDropdownScroll: name !== 'search' });
+  if (window.lucide) lucide.createIcons();
+}
+
+function clearCsvAllDataFilters() {
+  const filters = {
+    status: [],
+    priority: [],
+    initiative: [],
+    priorityPod: [],
+    reporter: [],
+    groupBy: 'none',
+    search: '',
+  };
+  state.csv.allData = {
+    ...state.csv.allData,
+    filters,
+  };
+  state.csv.openMultiDropdown = null;
+  saveCsvAllDataFilters(filters);
+  renderActiveCsvView();
   if (window.lucide) lucide.createIcons();
 }
 
@@ -610,7 +633,7 @@ function setCsvAllDataSort(field) {
     ...state.csv.allData,
     sort: { field, dir },
   };
-  renderCsvAllData();
+  renderActiveCsvView();
   if (window.lucide) lucide.createIcons();
 }
 
@@ -664,6 +687,7 @@ function renderCsvDashboard(options = {}) {
   renderCsvDashboardView($view, state, {
     onDashboardTabChange: setCsvDashboardTab,
     onFilterChange: setCsvDashboardFilter,
+    onClearFilters: clearCsvDashboardFilters,
     onSearchChange: setCsvDashboardSearch,
     onStatusGroupToggle: toggleCsvStatusGroup,
     onStatusGroupsSet: setCsvStatusGroups,
@@ -708,6 +732,22 @@ function setCsvDashboardSearch(search) {
     search,
   };
   renderCsvDashboard({ preserveFocus: true });
+  if (window.lucide) lucide.createIcons();
+}
+
+function clearCsvDashboardFilters() {
+  const filters = {
+    status: [],
+    initiative: [],
+  };
+  state.csv.dashboard = {
+    ...state.csv.dashboard,
+    filters,
+    search: '',
+  };
+  state.csv.openMultiDropdown = null;
+  saveCsvDashboardFilters(filters);
+  renderCsvDashboard();
   if (window.lucide) lucide.createIcons();
 }
 
@@ -807,11 +847,13 @@ function renderJira(options = {}) {
     onDashboardTabChange: setJiraDashboardTab,
     onDashboardVersionChange: setJiraDashboardVersions,
     onDashboardSearchChange: setJiraDashboardSearch,
+    onDashboardClearFilters: clearJiraDashboardFilters,
     onVersionGroupToggle: toggleJiraVersionGroup,
     onVersionGroupsSet: setJiraVersionGroups,
     onMultiDropdownToggle: toggleJiraMultiDropdown,
     onMultiDropdownClose: closeJiraMultiDropdown,
     onFilterChange: setJiraFilter,
+    onClearFilters: clearJiraAllDataFilters,
     onSortChange: setJiraSort,
   });
   restoreJiraFocus(focusSnapshot);
@@ -845,6 +887,18 @@ function setJiraDashboardSearch(search) {
     search,
   };
   renderJira({ preserveFocus: true });
+  if (window.lucide) lucide.createIcons();
+}
+
+function clearJiraDashboardFilters() {
+  state.jira.dashboard = {
+    ...state.jira.dashboard,
+    selectedVersions: [],
+    search: '',
+  };
+  state.jira.openMultiDropdown = null;
+  saveJiraDashboardVersions([]);
+  renderJira();
   if (window.lucide) lucide.createIcons();
 }
 
@@ -909,6 +963,26 @@ function setJiraFilter(name, value) {
   state.jira.openMultiDropdown = dropdownByFilter[name] || state.jira.openMultiDropdown;
   saveJiraAllDataFilters(filters);
   renderJira({ preserveFocus: name === 'search', preserveDropdownScroll: name !== 'search' });
+  if (window.lucide) lucide.createIcons();
+}
+
+function clearJiraAllDataFilters() {
+  const filters = {
+    status: [],
+    priority: [],
+    fixVersion: [],
+    pod: [],
+    label: [],
+    groupBy: 'none',
+    search: '',
+  };
+  state.jira.allData = {
+    ...state.jira.allData,
+    filters,
+  };
+  state.jira.openMultiDropdown = null;
+  saveJiraAllDataFilters(filters);
+  renderJira();
   if (window.lucide) lucide.createIcons();
 }
 

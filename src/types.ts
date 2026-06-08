@@ -126,7 +126,7 @@ export interface GroomResult {
   prose: string;
 }
 
-export const PRIORITY_ORDER = ['P0', 'P1', 'P2', ''] as const;
+export const PRIORITY_ORDER = ['Critical', 'Major', 'Minor', 'Unprioritized', ''] as const;
 
 export const CSV_DISPLAY_COLUMNS = [
   'ID',
@@ -142,7 +142,7 @@ export const CSV_DISPLAY_COLUMNS = [
 ] as const;
 
 export const CSV_REQUIRED_FIELDS = ['ID', 'Description/Problem', 'Status'] as const;
-export const CSV_VALID_PRIORITIES = ['P0', 'P1', 'P2'] as const;
+export const CSV_VALID_PRIORITIES = ['Critical', 'Major', 'Minor', 'Unprioritized'] as const;
 export const CSV_VALID_STATUSES = ['TRIAGE', 'TODO', 'Prioritized', 'HOLD'] as const;
 
 export const STATUS_ORDER = [

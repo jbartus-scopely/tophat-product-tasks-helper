@@ -31,6 +31,24 @@ const REQUIRED_FIELD_KEYS: Record<(typeof CSV_REQUIRED_FIELDS)[number], keyof Ta
 
 const VALID_PRIORITIES = new Set<string>(CSV_VALID_PRIORITIES);
 const VALID_STATUSES = new Set<string>(CSV_VALID_STATUSES);
+const PRIORITY_ALIASES: Record<string, string> = {
+  p0: 'Critical',
+  critical: 'Critical',
+  p0critical: 'Critical',
+  criticalp0: 'Critical',
+  p1: 'Major',
+  major: 'Major',
+  p1major: 'Major',
+  majorp1: 'Major',
+  p2: 'Minor',
+  minor: 'Minor',
+  p2minor: 'Minor',
+  minorp2: 'Minor',
+  p3: 'Unprioritized',
+  unprioritized: 'Unprioritized',
+  p3unprioritized: 'Unprioritized',
+  unprioritizedp3: 'Unprioritized',
+};
 
 const emptyBreakdown: ScoreBreakdown = {
   priority: 0,
@@ -47,6 +65,17 @@ function normalize(val: string): string {
   const trimmed = val.trim().replace(/\s+/g, ' ');
   if (/^n\/?a$/i.test(trimmed)) return '';
   return trimmed;
+}
+
+function normalizePriority(value: string): string {
+  const normalized = normalize(value);
+  const key = normalized.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  if (PRIORITY_ALIASES[key]) return PRIORITY_ALIASES[key];
+  if (key.includes('critical') || key.startsWith('p0')) return 'Critical';
+  if (key.includes('major') || key.startsWith('p1')) return 'Major';
+  if (key.includes('minor') || key.startsWith('p2')) return 'Minor';
+  if (key.includes('unprioritized') || key.startsWith('p3')) return 'Unprioritized';
+  return normalized;
 }
 
 function recordValue(record: Record<string, string>, csvCol: string): string {
@@ -73,7 +102,7 @@ function validateTask(task: Task, rowNumber: number, warnings: string[]): void {
   }
 
   if (task.priority && !VALID_PRIORITIES.has(task.priority)) {
-    warnings.push(`Invalid Priority "${task.priority}" on row ${rowNumber}; expected P0, P1, or P2`);
+    warnings.push(`Invalid Priority "${task.priority}" on row ${rowNumber}; expected Critical, Major, Minor, or Unprioritized`);
   }
 
   if (task.status && !VALID_STATUSES.has(task.status)) {
@@ -124,7 +153,7 @@ export function parseBacklogFromString(raw: string): BacklogData {
       description: mapped.description || '',
       initiative: mapped.initiative || '',
       priorityPod: mapped.priorityPod || '',
-      priority: mapped.priority || '',
+      priority: normalizePriority(mapped.priority || ''),
       status: mapped.status || '',
       comments: mapped.comments || '',
       group: mapped.initiative || '',

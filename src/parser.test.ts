@@ -5,7 +5,7 @@ import { parseBacklogFromString } from './parser.js';
 test('parses the new CSV task fields and ignores placeholder Column N fields', () => {
   const csv = [
     'Date,JIRA,ID,Reporter,Description/Problem,Priority,Status,Initiative,Priority pod,Comments,Column 11,Column 12',
-    '2026-06-01,TOP-1,FG-1,Ana,Fix tutorial,P0,TODO,Onboarding,Pod31,Needs copy,ignored,also ignored',
+    '2026-06-01,TOP-1,FG-1,Ana,Fix tutorial,Critical,TODO,Onboarding,Pod31,Needs copy,ignored,also ignored',
   ].join('\n');
 
   const result = parseBacklogFromString(csv);
@@ -31,7 +31,7 @@ test('parses the new CSV task fields and ignores placeholder Column N fields', (
       id: 'FG-1',
       reporter: 'Ana',
       description: 'Fix tutorial',
-      priority: 'P0',
+      priority: 'Critical',
       status: 'TODO',
       initiative: 'Onboarding',
       priorityPod: 'Pod31',
@@ -58,17 +58,37 @@ test('keeps rows with missing required fields without warning for missing priori
   ]);
 });
 
+test('normalizes legacy P-priority aliases to Jira-style CSV priority labels', () => {
+  const csv = [
+    'Date,JIRA,ID,Reporter,Description/Problem,Priority,Status,Initiative,Priority pod,Comments',
+    '2026-06-01,TOP-1,FG-1,Ana,Fix tutorial,P0,TODO,Onboarding,Pod31,Needs copy',
+    '2026-06-02,TOP-2,FG-2,Ben,Fix menu,p1,TRIAGE,Menus,Pod32,Needs design',
+    '2026-06-03,TOP-3,FG-3,Cid,Fix shop,P2 -> minor,HOLD,Shop,Pod33,Blocked',
+    '2026-06-04,TOP-4,FG-4,Dan,Fix inbox,P3 - unprioritized,Prioritized,Inbox,Pod34,Pending',
+  ].join('\n');
+
+  const result = parseBacklogFromString(csv);
+
+  assert.deepEqual(result.tasks.map((task) => task.priority), [
+    'Critical',
+    'Major',
+    'Minor',
+    'Unprioritized',
+  ]);
+  assert.deepEqual(result.warnings, []);
+});
+
 test('keeps invalid priority and status rows and reports validation warnings', () => {
   const csv = [
     'Date,JIRA,ID,Reporter,Description/Problem,Priority,Status,Initiative,Priority pod,Comments',
-    '2026-06-01,TOP-1,FG-1,Ana,Fix tutorial,P3,Live,Onboarding,Pod31,Needs copy',
+    '2026-06-01,TOP-1,FG-1,Ana,Fix tutorial,Urgent,Live,Onboarding,Pod31,Needs copy',
   ].join('\n');
 
   const result = parseBacklogFromString(csv);
 
   assert.equal(result.tasks.length, 1);
   assert.deepEqual(result.warnings, [
-    'Invalid Priority "P3" on row 2; expected P0, P1, or P2',
+    'Invalid Priority "Urgent" on row 2; expected Critical, Major, Minor, or Unprioritized',
     'Invalid Status "Live" on row 2; expected TRIAGE, TODO, Prioritized, or HOLD',
   ]);
 });
@@ -76,8 +96,8 @@ test('keeps invalid priority and status rows and reports validation warnings', (
 test('reports duplicate IDs while keeping duplicate rows independent', () => {
   const csv = [
     'Date,JIRA,ID,Reporter,Description/Problem,Priority,Status,Initiative,Priority pod,Comments',
-    '2026-06-01,TOP-1,FG-1,Ana,Fix tutorial,P0,TODO,Onboarding,Pod31,First',
-    '2026-06-02,TOP-2,FG-1,Ben,Fix menu,P1,TRIAGE,Menus,Pod32,Second',
+    '2026-06-01,TOP-1,FG-1,Ana,Fix tutorial,Critical,TODO,Onboarding,Pod31,First',
+    '2026-06-02,TOP-2,FG-1,Ben,Fix menu,Major,TRIAGE,Menus,Pod32,Second',
   ].join('\n');
 
   const result = parseBacklogFromString(csv);
@@ -91,9 +111,9 @@ test('reports duplicate IDs while keeping duplicate rows independent', () => {
 test('filters #NUM rows and completely empty rows', () => {
   const csv = [
     'Date,JIRA,ID,Reporter,Description/Problem,Priority,Status,Initiative,Priority pod,Comments',
-    '2026-06-01,TOP-1,#NUM!,Ana,Fix tutorial,P0,TODO,Onboarding,Pod31,Ignored',
+    '2026-06-01,TOP-1,#NUM!,Ana,Fix tutorial,Critical,TODO,Onboarding,Pod31,Ignored',
     ',,,,,,,,,',
-    '2026-06-02,TOP-2,FG-2,Ben,Fix menu,P1,Prioritized,Menus,Pod32,Kept',
+    '2026-06-02,TOP-2,FG-2,Ben,Fix menu,Major,Prioritized,Menus,Pod32,Kept',
   ].join('\n');
 
   const result = parseBacklogFromString(csv);

@@ -56,6 +56,7 @@ test('Jira dashboard renders sub-tabs, version filters, and collapsible groups',
     assert.match(components, /wireJiraVersionBugTooltips/);
     assert.match(components, /data-jira-version-toggle/);
     assert.match(components, /data-jira-version-bulk/);
+    assert.match(components, /data-jira-dashboard-clear-filters/);
     assert.match(components, /expandedVersions\?\.\[version\] !== false/);
     assert.match(app, /expandedVersions\?\.\[version\] !== false/);
     assert.match(app, /getJiraDropdownScrollSnapshot/);
@@ -67,6 +68,9 @@ test('Jira dashboard renders sub-tabs, version filters, and collapsible groups',
     assert.match(components, /status === 'open' \|\| status === 'to do'/);
     assert.match(app, /getJiraDashboardVersions/);
     assert.match(app, /saveJiraDashboardVersions/);
+    assert.match(app, /onDashboardClearFilters: clearJiraDashboardFilters/);
+    assert.match(app, /function clearJiraDashboardFilters/);
+    assert.match(app, /saveJiraDashboardVersions\(\[\]\)/);
     assert.match(shared, /pth_jira_dashboard_versions/);
 });
 test('Jira All Data view provides combined saved data, persisted multi-select filters, and sortable columns', () => {
@@ -102,6 +106,8 @@ test('Jira All Data view provides combined saved data, persisted multi-select fi
     assert.match(components, /checkedMultiValues/);
     assert.match(components, /jira-filter-search/);
     assert.match(components, /onFilterChange\?\.\('groupBy'/);
+    assert.match(components, /data-jira-clear-filters/);
+    assert.match(components, /actions\.onClearFilters\?\.\(\)/);
     assert.match(components, /JIRA_VISIBLE_LABELS/);
     assert.match(components, /BetterCasual/);
     assert.match(components, /UXFoundations/);
@@ -118,6 +124,9 @@ test('Jira All Data view provides combined saved data, persisted multi-select fi
     assert.match(app, /preserveFocus: name === 'search'/);
     assert.match(app, /getJiraAllDataFilters/);
     assert.match(app, /saveJiraAllDataFilters/);
+    assert.match(app, /onClearFilters: clearJiraAllDataFilters/);
+    assert.match(app, /function clearJiraAllDataFilters/);
+    assert.match(app, /saveJiraAllDataFilters\(filters\)/);
     assert.match(shared, /label: normalizeStringArray\(value\?\.label\)/);
     assert.match(shared, /groupBy: normalizeJiraAllDataGroupBy/);
     assert.match(shared, /'labels'/);

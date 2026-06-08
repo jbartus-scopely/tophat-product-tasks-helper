@@ -40,21 +40,51 @@ const colors = {
 // ── Priority Badges ───────────────────────────────────────────
 
 function priorityBadge(priority: string): string {
-  switch (priority) {
-    case 'P0': return chalk.bgRed.white.bold(` P0 `);
-    case 'P1': return chalk.bgYellow.black.bold(` P1 `);
-    case 'P2': return chalk.bgCyan.black.bold(` P2 `);
-    default:   return chalk.bgGray.white(` -- `);
+  switch (normalizePriorityLabel(priority)) {
+    case 'Critical': return chalk.bgRed.white.bold(` Critical `);
+    case 'Major': return chalk.bgYellow.black.bold(` Major `);
+    case 'Minor': return chalk.bgGreen.black.bold(` Minor `);
+    case 'Unprioritized': return chalk.bgGray.white(` Unprioritized `);
+    default: return chalk.bgGray.white(` -- `);
   }
 }
 
 function priorityText(priority: string): string {
-  switch (priority) {
-    case 'P0': return chalk.red.bold('P0');
-    case 'P1': return chalk.yellow.bold('P1');
-    case 'P2': return chalk.cyan.bold('P2');
-    default:   return chalk.dim('--');
+  switch (normalizePriorityLabel(priority)) {
+    case 'Critical': return chalk.red.bold('Critical');
+    case 'Major': return chalk.yellow.bold('Major');
+    case 'Minor': return chalk.green.bold('Minor');
+    case 'Unprioritized': return chalk.dim('Unprioritized');
+    default: return chalk.dim('--');
   }
+}
+
+function normalizePriorityLabel(priority: string): string {
+  const key = priority.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const aliases: Record<string, string> = {
+    p0: 'Critical',
+    critical: 'Critical',
+    p0critical: 'Critical',
+    criticalp0: 'Critical',
+    p1: 'Major',
+    major: 'Major',
+    p1major: 'Major',
+    majorp1: 'Major',
+    p2: 'Minor',
+    minor: 'Minor',
+    p2minor: 'Minor',
+    minorp2: 'Minor',
+    p3: 'Unprioritized',
+    unprioritized: 'Unprioritized',
+    p3unprioritized: 'Unprioritized',
+    unprioritizedp3: 'Unprioritized',
+  };
+  if (aliases[key]) return aliases[key];
+  if (key.includes('critical') || key.startsWith('p0')) return 'Critical';
+  if (key.includes('major') || key.startsWith('p1')) return 'Major';
+  if (key.includes('minor') || key.startsWith('p2')) return 'Minor';
+  if (key.includes('unprioritized') || key.startsWith('p3')) return 'Unprioritized';
+  return priority;
 }
 
 // ── Status Indicators ─────────────────────────────────────────

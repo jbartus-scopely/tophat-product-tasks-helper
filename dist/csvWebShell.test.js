@@ -9,6 +9,9 @@ test('CSV upload state uses dedicated localStorage helpers', () => {
     const shared = readProjectFile('src/web/shared.js');
     assert.match(shared, /pth_csv_latest_upload/);
     assert.match(shared, /function normalizeCsvDataset/);
+    assert.match(shared, /function normalizeCsvWarnings/);
+    assert.match(shared, /\^Missing \(Priority\|Initiative\) on row/);
+    assert.match(shared, /\^Invalid Priority/);
     assert.match(shared, /export function getStoredCsvData/);
     assert.match(shared, /export function saveStoredCsvData/);
     assert.match(shared, /localStorage\.setItem\(CSV_DATA_KEY/);
@@ -82,6 +85,9 @@ test('CSV Dashboard provides persisted filters, search state, and summary widget
     assert.match(app, /function setCsvDashboardTab/);
     assert.match(app, /onDashboardTabChange: setCsvDashboardTab/);
     assert.match(app, /function setCsvDashboardSearch/);
+    assert.match(app, /onClearFilters: clearCsvDashboardFilters/);
+    assert.match(app, /function clearCsvDashboardFilters/);
+    assert.match(app, /saveCsvDashboardFilters\(filters\)/);
     assert.match(app, /CSV_FOCUSABLE_INPUT_IDS/);
     assert.match(app, /preserveFocus: true/);
     assert.match(app, /preserveDropdownScroll: true/);
@@ -95,6 +101,9 @@ test('CSV Dashboard provides persisted filters, search state, and summary widget
     assert.match(components, /csv-dashboard-status-filter/);
     assert.match(components, /csv-dashboard-initiative-filter/);
     assert.match(components, /id="csv-dashboard-search"/);
+    assert.match(components, /data-csv-dashboard-clear-filters/);
+    assert.match(components, /Clear filters/);
+    assert.match(components, /actions\.onClearFilters\?\.\(\)/);
     assert.match(components, /data-csv-multi-input/);
 });
 test('CSV Dashboard groups by status with session-only expansion controls', () => {
@@ -151,9 +160,11 @@ test('CSV All Data renders required columns and sortable priority order', () => 
     assert.match(components, /function csvInitiativeHtml/);
     assert.match(components, /data-csv-sort/);
     assert.match(components, /function csvPriorityRank/);
-    assert.match(components, /P0: 0/);
-    assert.match(components, /P1: 1/);
-    assert.match(components, /P2: 2/);
+    assert.match(components, /critical: 0/);
+    assert.match(components, /major: 1/);
+    assert.match(components, /minor: 2/);
+    assert.match(components, /unprioritized: 3/);
+    assert.match(components, /jira-priority-badge jira-priority-\$\{level\}/);
     assert.match(components, /return \[\.{3}tasks\]\.sort/);
     assert.match(components, /tasks\.map\(task => \{/);
     assert.match(style, /\.csv-shell \.badge-priority/);
@@ -183,6 +194,9 @@ test('CSV All Data provides persisted filters, group-by, and scoped search', () 
     assert.match(shared, /export function saveCsvAllDataFilters/);
     assert.match(app, /\.\.\.getCsvAllDataFilters\(\)/);
     assert.match(app, /function setCsvAllDataFilter/);
+    assert.match(app, /function clearCsvAllDataFilters/);
+    assert.match(app, /groupBy: 'none'/);
+    assert.match(app, /renderActiveCsvView\(\)/);
     assert.match(app, /saveCsvAllDataFilters\(filters\)/);
     assert.match(app, /CSV_FOCUSABLE_INPUT_IDS = new Set\(\['csv-dashboard-search', 'csv-filter-search', 'csv-list-new-name'\]\)/);
     assert.match(components, /csv-filter-status/);
@@ -191,6 +205,7 @@ test('CSV All Data provides persisted filters, group-by, and scoped search', () 
     assert.match(components, /csv-filter-priority-pod/);
     assert.match(components, /csv-filter-reporter/);
     assert.match(components, /id="csv-group-by"/);
+    assert.match(components, /data-csv-clear-filters/);
     assert.match(components, /CSV_ALL_DATA_GROUP_BY_OPTIONS/);
     assert.match(components, /\{ value: 'none', label: 'None' \}/);
     assert.match(components, /\{ value: 'status', label: 'Status' \}/);
@@ -258,6 +273,8 @@ test('CSV list views reuse All Data rendering and expose list management', () =>
     assert.match(app, /tasks: csvTasksForList\(list\)/);
     assert.match(app, /function csvTasksForList/);
     assert.match(app, /list\.taskIds\.map\(id => taskById\.get\(id\)\)\.filter\(Boolean\)/);
+    assert.match(app, /function setCsvAllDataFilter[\s\S]*renderActiveCsvView\(\{ preserveFocus: name === 'search', preserveDropdownScroll: name !== 'search' \}\)/);
+    assert.match(app, /function setCsvAllDataSort[\s\S]*renderActiveCsvView\(\)/);
     assert.match(components, /const tasks = Array\.isArray\(options\.tasks\) \? options\.tasks : csvTasks\(state\)/);
     assert.match(components, /filteredSortedCsvAllDataTasks\(tasks, allData\)/);
     assert.match(components, /function csvListManagementHtml/);

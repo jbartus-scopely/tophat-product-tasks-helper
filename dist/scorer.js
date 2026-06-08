@@ -1,8 +1,13 @@
 // Scoring weights derived from AGENTS.md Lightweight Scoring Model
 const PRIORITY_SCORES = {
-    'P0': 40,
-    'P1': 25,
-    'P2': 10,
+    Critical: 40,
+    Major: 25,
+    Minor: 10,
+    Unprioritized: 0,
+    P0: 40,
+    P1: 25,
+    P2: 10,
+    P3: 0,
 };
 const STATUS_SCORES = {
     'Prioritized': 30,

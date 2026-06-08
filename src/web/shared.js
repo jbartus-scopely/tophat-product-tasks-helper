@@ -46,6 +46,48 @@ function normalizeStringArray(value) {
   return [...new Set(value.filter(item => typeof item === 'string').map(item => item.trim()).filter(Boolean))];
 }
 
+function normalizeCsvPriority(value) {
+  const normalized = String(value || '').trim();
+  const key = normalized.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const aliases = {
+    p0: 'Critical',
+    critical: 'Critical',
+    p0critical: 'Critical',
+    criticalp0: 'Critical',
+    p1: 'Major',
+    major: 'Major',
+    p1major: 'Major',
+    majorp1: 'Major',
+    p2: 'Minor',
+    minor: 'Minor',
+    p2minor: 'Minor',
+    minorp2: 'Minor',
+    p3: 'Unprioritized',
+    unprioritized: 'Unprioritized',
+    p3unprioritized: 'Unprioritized',
+    unprioritizedp3: 'Unprioritized',
+  };
+  if (aliases[key]) return aliases[key];
+  if (key.includes('critical') || key.startsWith('p0')) return 'Critical';
+  if (key.includes('major') || key.startsWith('p1')) return 'Major';
+  if (key.includes('minor') || key.startsWith('p2')) return 'Minor';
+  if (key.includes('unprioritized') || key.startsWith('p3')) return 'Unprioritized';
+  return normalized;
+}
+
+function normalizeCsvPriorityArray(value) {
+  return normalizeStringArray(value).map(normalizeCsvPriority);
+}
+
+function normalizeCsvWarnings(value) {
+  return normalizeStringArray(value).filter(warning => {
+    if (/^Missing (Priority|Initiative) on row \d+$/i.test(warning)) return false;
+    const invalidPriority = warning.match(/^Invalid Priority "([^"]*)" on row \d+;/i);
+    if (!invalidPriority) return true;
+    return !['Critical', 'Major', 'Minor', 'Unprioritized'].includes(normalizeCsvPriority(invalidPriority[1]));
+  });
+}
+
 function normalizeCsvListEntry(entry) {
   if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
   const id = String(entry.id || '').trim();
@@ -66,7 +108,7 @@ function normalizeCsvTask(task) {
     id: String(task.id || ''),
     jira: String(task.jira || ''),
     description: String(task.description || ''),
-    priority: String(task.priority || ''),
+    priority: normalizeCsvPriority(task.priority),
     status: String(task.status || ''),
     initiative: String(task.initiative || task.group || ''),
     priorityPod: String(task.priorityPod || task.assignedPod || ''),
@@ -81,7 +123,7 @@ function normalizeCsvDataset(value) {
   const tasks = Array.isArray(value.tasks) ? value.tasks.map(normalizeCsvTask).filter(Boolean) : [];
   return {
     tasks,
-    warnings: normalizeStringArray(value.warnings),
+    warnings: normalizeCsvWarnings(value.warnings),
     duplicateIds: value.duplicateIds && typeof value.duplicateIds === 'object' && !Array.isArray(value.duplicateIds) ? value.duplicateIds : {},
     totalRaw: Number.isFinite(Number(value.totalRaw)) ? Number(value.totalRaw) : tasks.length,
     filtered: Number.isFinite(Number(value.filtered)) ? Number(value.filtered) : 0,
@@ -113,7 +155,7 @@ function normalizeCsvDashboardFilters(value) {
 function normalizeCsvAllDataFilters(value) {
   return {
     status: normalizeStringArray(value?.status),
-    priority: normalizeStringArray(value?.priority),
+    priority: normalizeCsvPriorityArray(value?.priority),
     initiative: normalizeStringArray(value?.initiative),
     priorityPod: normalizeStringArray(value?.priorityPod),
     reporter: normalizeStringArray(value?.reporter),

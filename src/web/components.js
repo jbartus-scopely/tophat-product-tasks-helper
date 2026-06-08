@@ -24,10 +24,51 @@ function truncate(text, max) {
 
 // ── Priority Badge ───────────────────────────────────────────
 function priorityBadge(p) {
-  if (p === 'P0') return '<span class="badge badge-priority badge-p0">P0</span>';
-  if (p === 'P1') return '<span class="badge badge-priority badge-p1">P1</span>';
-  if (p === 'P2') return '<span class="badge badge-priority badge-p2">P2</span>';
-  return '<span class="badge badge-priority badge-none">--</span>';
+  const label = csvPriorityLabel(p);
+  const normalized = csvPriorityKey(label);
+  let level = 'none';
+  if (normalized === 'critical') level = 'highest';
+  else if (normalized === 'major') level = 'high';
+  else if (normalized === 'minor') level = 'low';
+  return `<span class="badge badge-priority jira-priority-badge jira-priority-${level}">${esc(label || '--')}</span>`;
+}
+
+function csvPriorityKey(value) {
+  const key = String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const aliases = {
+    p0: 'critical',
+    critical: 'critical',
+    p0critical: 'critical',
+    criticalp0: 'critical',
+    p1: 'major',
+    major: 'major',
+    p1major: 'major',
+    majorp1: 'major',
+    p2: 'minor',
+    minor: 'minor',
+    p2minor: 'minor',
+    minorp2: 'minor',
+    p3: 'unprioritized',
+    unprioritized: 'unprioritized',
+    p3unprioritized: 'unprioritized',
+    unprioritizedp3: 'unprioritized',
+  };
+  if (aliases[key]) return aliases[key];
+  if (key.includes('critical') || key.startsWith('p0')) return 'critical';
+  if (key.includes('major') || key.startsWith('p1')) return 'major';
+  if (key.includes('minor') || key.startsWith('p2')) return 'minor';
+  if (key.includes('unprioritized') || key.startsWith('p3')) return 'unprioritized';
+  return key;
+}
+
+function csvPriorityLabel(value) {
+  const labels = {
+    critical: 'Critical',
+    major: 'Major',
+    minor: 'Minor',
+    unprioritized: 'Unprioritized',
+  };
+  return labels[csvPriorityKey(value)] || String(value || '').trim();
 }
 
 function statusBadge(s) {
@@ -86,7 +127,7 @@ function groupSelect(groups, id) {
 }
 
 function priorityFilterSelect(id) {
-  return `<select id="${id}"><option value="">All priorities</option><option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option></select>`;
+  return `<select id="${id}"><option value="">All priorities</option><option value="Critical">Critical</option><option value="Major">Major</option><option value="Minor">Minor</option><option value="Unprioritized">Unprioritized</option></select>`;
 }
 
 const CATEGORY_STATUSES = {
@@ -359,7 +400,7 @@ function taskTable(tasks, opts = {}) {
       html += `<td>${statusBadge(t.status)}</td>`;
     }
     if (showAi) {
-      html += `<td>${priorityBadge(t.aiPriority === 'High' ? 'P0' : t.aiPriority === 'Mid' ? 'P1' : 'P2')}</td>`;
+      html += `<td>${priorityBadge(t.aiPriority === 'High' ? 'Critical' : t.aiPriority === 'Mid' ? 'Major' : 'Minor')}</td>`;
       html += `<td>${aiActionBadge(t.aiAction)}</td>`;
     }
     html += `<td>${groupBadge(showAi ? t.aiGroup : t.group)}</td>`;
@@ -458,7 +499,7 @@ function wireClickToExpand(container, notesMap) {
 }
 
 // ── Sorting ──────────────────────────────────────────────────
-const PRIORITY_RANK = { 'P0': 0, 'P1': 1, 'P2': 2, '': 3, '--': 3 };
+const PRIORITY_RANK = { critical: 0, major: 1, minor: 2, unprioritized: 3, '': 4, '--': 4 };
 const AI_PRIORITY_RANK = { 'High': 0, 'Mid': 1, 'Low': 2, '': 3 };
 const PREPRO_RANK = { '0 - Low': 0, '1 - Mid': 1, '2 - High': 2, '': 3 };
 
@@ -468,7 +509,7 @@ function sortTasks(tasks, field, dir, showAi) {
   sorted.sort((a, b) => {
     let va, vb;
     if (field === 'score') { va = a.score; vb = b.score; return (va - vb) * d; }
-    if (field === 'priority') { va = PRIORITY_RANK[a.priority] ?? 3; vb = PRIORITY_RANK[b.priority] ?? 3; return (va - vb) * d; }
+    if (field === 'priority') { va = PRIORITY_RANK[csvPriorityKey(a.priority)] ?? 4; vb = PRIORITY_RANK[csvPriorityKey(b.priority)] ?? 4; return (va - vb) * d; }
     if (field === 'aiPriority') { va = AI_PRIORITY_RANK[a.aiPriority] ?? 3; vb = AI_PRIORITY_RANK[b.aiPriority] ?? 3; return (va - vb) * d; }
     if (field === 'status') { va = a.status || ''; vb = b.status || ''; return va.localeCompare(vb) * d; }
     if (field === 'aiAction') { va = a.aiAction || ''; vb = b.aiAction || ''; return va.localeCompare(vb) * d; }
@@ -636,7 +677,7 @@ function renderDuplicatesResultsHtml(result) {
       html += `<td class="col-score">${scoreBar(t.score || 0)}</td>`;
       html += `<td class="col-id">${esc(t.taskId)}</td>`;
       html += `<td><span class="badge-ai-action" style="background:${meta.bg};color:${meta.color}">${esc(t.aiAction || '--')}</span></td>`;
-      html += `<td>${priorityBadge(t.aiPriority === 'High' ? 'P0' : t.aiPriority === 'Mid' ? 'P1' : 'P2')}</td>`;
+      html += `<td>${priorityBadge(t.aiPriority === 'High' ? 'Critical' : t.aiPriority === 'Mid' ? 'Major' : 'Minor')}</td>`;
       html += `<td class="col-desc">${esc(t.aiDescription)}</td>`;
       html += `<td style="font-size:12px;color:var(--text-muted);max-width:300px">${esc(t.aiNotes || '--')}</td>`;
       html += '</tr>';
@@ -792,6 +833,7 @@ function csvDashboardControlsHtml(tasks, dashboard) {
   html += csvMultiFilterSelectHtml('csv-dashboard-initiative-filter', 'Initiative', initiatives, filters.initiative || []);
   html += '<div class="jira-version-bulk-actions csv-status-bulk-actions"><button type="button" class="btn" data-csv-status-bulk="open"><i data-lucide="chevrons-down" style="width:14px;height:14px"></i> Open all</button><button type="button" class="btn" data-csv-status-bulk="collapse"><i data-lucide="chevrons-up" style="width:14px;height:14px"></i> Collapse all</button></div>';
   html += `<div class="ai-form-field jira-search-field"><label>Search</label><input type="text" id="csv-dashboard-search" value="${esc(dashboard.search || '')}"></div>`;
+  html += '<button type="button" class="btn clear-filters-btn" data-csv-dashboard-clear-filters><i data-lucide="filter-x" style="width:14px;height:14px"></i> Clear filters</button>';
   html += '</div>';
   return html;
 }
@@ -940,6 +982,7 @@ export function renderCsvDashboardView($el, state, actions = {}) {
       actions.onStatusGroupsSet?.(statuses, button.dataset.csvStatusBulk === 'open');
     });
   });
+  $el.querySelector('[data-csv-dashboard-clear-filters]')?.addEventListener('click', () => actions.onClearFilters?.());
   if (state.csv?.openMultiDropdown) {
     setTimeout(() => {
       document.addEventListener('click', () => actions.onMultiDropdownClose?.(), { once: true });
@@ -979,14 +1022,15 @@ const CSV_NO_GROUP_LABELS = {
 };
 
 const CSV_PRIORITY_RANK = {
-  P0: 0,
-  P1: 1,
-  P2: 2,
-  '': 3,
+  critical: 0,
+  major: 1,
+  minor: 2,
+  unprioritized: 3,
+  '': 4,
 };
 
 function csvPriorityRank(value) {
-  return CSV_PRIORITY_RANK[String(value || '').trim()] ?? 3;
+  return CSV_PRIORITY_RANK[csvPriorityKey(value)] ?? 4;
 }
 
 function csvSortHeader(label, field, sort) {
@@ -1117,6 +1161,7 @@ function csvAllDataFilterControlsHtml(baseTasks, allData) {
   html += csvMultiFilterSelectHtml('csv-filter-reporter', 'Reporter', reporters, filters.reporter || []);
   html += csvGroupBySelectHtml(currentCsvAllDataGroupBy(allData));
   html += `<div class="ai-form-field jira-search-field"><label>Search</label><input type="text" id="csv-filter-search" value="${esc(filters.search || '')}"></div>`;
+  html += '<button type="button" class="btn clear-filters-btn" data-csv-clear-filters><i data-lucide="filter-x" style="width:14px;height:14px"></i> Clear filters</button>';
   html += '</div>';
   return html;
 }
@@ -1290,6 +1335,7 @@ export function renderCsvAllDataView($el, state, actions = {}, options = {}) {
   }
   document.getElementById('csv-filter-search')?.addEventListener('input', (e) => actions.onFilterChange?.('search', e.target.value));
   document.getElementById('csv-group-by')?.addEventListener('change', (e) => actions.onFilterChange?.('groupBy', e.target.value));
+  $el.querySelector('[data-csv-clear-filters]')?.addEventListener('click', () => actions.onClearFilters?.());
   document.getElementById('csv-list-target')?.addEventListener('change', (e) => actions.onListTargetChange?.(e.target.value));
   document.getElementById('csv-list-new-name')?.addEventListener('input', (e) => actions.onListNameChange?.(e.target.value));
   $el.querySelectorAll('[data-csv-sort]').forEach(header => {
@@ -1764,6 +1810,7 @@ function dashboardControlsHtml(dashboard, versionOptions, activeView) {
     html += '<div class="jira-version-bulk-actions"><button type="button" class="btn" data-jira-version-bulk="open"><i data-lucide="chevrons-down" style="width:14px;height:14px"></i> Open all</button><button type="button" class="btn" data-jira-version-bulk="collapse"><i data-lucide="chevrons-up" style="width:14px;height:14px"></i> Collapse all</button></div>';
   }
   html += `<div class="ai-form-field jira-search-field"><label>Search</label><input type="text" id="jira-dashboard-search" value="${esc(dashboard.search || '')}"></div>`;
+  html += '<button type="button" class="btn clear-filters-btn" data-jira-dashboard-clear-filters><i data-lucide="filter-x" style="width:14px;height:14px"></i> Clear filters</button>';
   html += '</div>';
   return html;
 }
@@ -1995,6 +2042,7 @@ function jiraFilterControlsHtml(baseIssues, allData) {
   html += multiFilterSelectHtml('jira-filter-label', 'Label', labels, filters.label || []);
   html += jiraGroupBySelectHtml(currentAllDataGroupBy(allData));
   html += `<div class="ai-form-field jira-search-field"><label>Search</label><input type="text" id="jira-filter-search" value="${esc(filters.search || '')}"></div>`;
+  html += '<button type="button" class="btn clear-filters-btn" data-jira-clear-filters><i data-lucide="filter-x" style="width:14px;height:14px"></i> Clear filters</button>';
   html += '</div>';
   return html;
 }
@@ -2125,6 +2173,7 @@ export function renderJiraView($el, state, actions = {}) {
     });
   });
   document.getElementById('jira-dashboard-search')?.addEventListener('input', (e) => actions.onDashboardSearchChange?.(e.target.value));
+  $el.querySelector('[data-jira-dashboard-clear-filters]')?.addEventListener('click', () => actions.onDashboardClearFilters?.());
   $el.querySelectorAll('[data-jira-version-toggle]').forEach(button => {
     button.addEventListener('click', () => actions.onVersionGroupToggle?.(button.dataset.jiraVersionToggle));
   });
@@ -2164,6 +2213,7 @@ export function renderJiraView($el, state, actions = {}) {
   }
   document.getElementById('jira-filter-search')?.addEventListener('input', (e) => actions.onFilterChange?.('search', e.target.value));
   document.getElementById('jira-group-by')?.addEventListener('change', (e) => actions.onFilterChange?.('groupBy', e.target.value));
+  $el.querySelector('[data-jira-clear-filters]')?.addEventListener('click', () => actions.onClearFilters?.());
   $el.querySelectorAll('[data-jira-sort]').forEach(header => {
     header.addEventListener('click', () => actions.onSortChange?.(header.dataset.jiraSort));
   });

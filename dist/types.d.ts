@@ -113,10 +113,10 @@ export interface GroomResult {
     tasks: GroomedTask[];
     prose: string;
 }
-export declare const PRIORITY_ORDER: readonly ["P0", "P1", "P2", ""];
+export declare const PRIORITY_ORDER: readonly ["Critical", "Major", "Minor", "Unprioritized", ""];
 export declare const CSV_DISPLAY_COLUMNS: readonly ["ID", "JIRA", "Description/Problem", "Priority", "Status", "Initiative", "Priority pod", "Reporter", "Date", "Comments"];
 export declare const CSV_REQUIRED_FIELDS: readonly ["ID", "Description/Problem", "Status"];
-export declare const CSV_VALID_PRIORITIES: readonly ["P0", "P1", "P2"];
+export declare const CSV_VALID_PRIORITIES: readonly ["Critical", "Major", "Minor", "Unprioritized"];
 export declare const CSV_VALID_STATUSES: readonly ["TRIAGE", "TODO", "Prioritized", "HOLD"];
 export declare const STATUS_ORDER: readonly ["Prioritized", "Pre-Pro Ready", "Ready for release", "Prepro-In Progress", "TODO", "Pod Working", "BLOCK", "TRIAGE", "HOLD", "Live", ""];
 export declare const PREPRO_VALUES: readonly ["0 - Low", "1 - Mid", "2 - High"];
