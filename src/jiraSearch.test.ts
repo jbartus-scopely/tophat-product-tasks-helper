@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { searchJiraIssues } from './jiraSearch.js';
-import type { JiraClientEnv } from './jiraClient.js';
+import type { JiraClientSettings } from './jiraClient.js';
 
-const VALID_ENV: JiraClientEnv = {
-  JIRA_BASE_URL: 'https://example.atlassian.net/',
-  JIRA_EMAIL: 'product@example.com',
-  JIRA_API_TOKEN: 'secret-token',
+const VALID_SETTINGS: JiraClientSettings = {
+  baseUrl: 'https://example.atlassian.net/',
+  email: 'product@example.com',
+  apiToken: 'secret-token',
 };
 
 interface CapturedSearchRequest {
@@ -24,7 +24,7 @@ test('executes raw JQL search with requested fields and normalizes issue output'
       sourceSectionTitle: 'Coming soon',
     },
     {
-      env: VALID_ENV,
+      settings: VALID_SETTINGS,
       fetchFn: async (input, init) => {
         if (String(input).endsWith('/rest/api/3/field')) {
           return jsonResponse([{ id: 'customfield_12345', name: 'Pod' }]);
@@ -91,7 +91,7 @@ test('paginates Jira search results up to the 500 issue cap', async () => {
       sourceSectionTitle: 'All Jira',
     },
     {
-      env: VALID_ENV,
+      settings: VALID_SETTINGS,
       fetchFn: async (input, init) => {
         if (String(input).endsWith('/rest/api/3/field')) {
           return jsonResponse([{ id: 'customfield_12345', name: 'Pod' }]);
@@ -131,7 +131,7 @@ test('returns missing Pod warning and searches without a Pod field when discover
       sourceSectionTitle: 'No Pod',
     },
     {
-      env: VALID_ENV,
+      settings: VALID_SETTINGS,
       fetchFn: async (input, init) => {
         if (String(input).endsWith('/rest/api/3/field')) {
           return jsonResponse([]);
@@ -166,7 +166,7 @@ test('normalizes null or unexpected Jira field values without throwing', async (
       sourceSectionTitle: 'Defensive',
     },
     {
-      env: VALID_ENV,
+      settings: VALID_SETTINGS,
       fetchFn: async (input) => {
         if (String(input).endsWith('/rest/api/3/field')) {
           return jsonResponse([{ id: 'customfield_12345', name: 'Pod' }]);

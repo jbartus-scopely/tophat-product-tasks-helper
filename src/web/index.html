@@ -55,6 +55,9 @@
       <header class="topbar">
         <h1 class="page-title" id="page-title">Jira Dashboard</h1>
         <div class="topbar-right">
+          <button type="button" class="icon-btn topbar-icon-btn" id="jira-settings-btn" aria-label="Jira settings" title="Jira settings">
+            <i data-lucide="settings" class="nav-icon"></i>
+          </button>
           <span class="backlog-badge" id="backlog-badge">No data</span>
         </div>
       </header>
@@ -78,6 +81,7 @@
       </div>
     </main>
   </div>
+  <div id="modal-root"></div>
 
   <script type="module" src="app.js"></script>
   <script>

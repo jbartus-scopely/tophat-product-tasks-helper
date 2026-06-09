@@ -18,6 +18,7 @@ const CSV_DATA_KEY = 'pth_csv_latest_upload';
 const CSV_DASHBOARD_FILTERS_KEY = 'pth_csv_dashboard_filters';
 const CSV_ALL_DATA_FILTERS_KEY = 'pth_csv_all_data_filters';
 const CSV_LISTS_KEY = 'pth_csv_task_lists';
+const JIRA_SETTINGS_KEY = 'pth_jira_settings';
 const JIRA_DASHBOARD_VERSIONS_KEY = 'pth_jira_dashboard_versions';
 const JIRA_ALL_DATA_FILTERS_KEY = 'pth_jira_all_data_filters';
 const CSV_ALL_DATA_GROUP_BY_VALUES = ['none', 'status', 'priority', 'initiative', 'priorityPod', 'reporter'];
@@ -169,6 +170,26 @@ function normalizeCsvAllDataGroupBy(value) {
 
 function normalizeJiraAllDataGroupBy(value) {
   return JIRA_ALL_DATA_GROUP_BY_VALUES.includes(value) ? value : 'none';
+}
+
+export function normalizeJiraSettings(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const baseUrl = String(value.baseUrl || '').trim().replace(/\/+$/, '');
+  const email = String(value.email || '').trim();
+  const apiToken = String(value.apiToken || '').trim();
+  if (!baseUrl || !email || !apiToken) return null;
+  return { baseUrl, email, apiToken };
+}
+
+export function getJiraSettings() {
+  return normalizeJiraSettings(loadStorageObject(JIRA_SETTINGS_KEY, {}));
+}
+
+export function saveJiraSettings(settings) {
+  const normalized = normalizeJiraSettings(settings);
+  if (!normalized) return null;
+  localStorage.setItem(JIRA_SETTINGS_KEY, JSON.stringify(normalized));
+  return normalized;
 }
 
 export function getJiraDashboardVersions() {

@@ -1,8 +1,10 @@
-type JiraEnvKey = 'JIRA_BASE_URL' | 'JIRA_EMAIL' | 'JIRA_API_TOKEN';
 type JiraReadMethod = 'GET' | 'POST';
 type JiraFetch = (input: string, init?: RequestInit) => Promise<Response>;
 type JiraQueryValue = string | number | boolean | null | undefined;
-export interface JiraClientEnv extends Partial<Record<JiraEnvKey, string | undefined>> {
+export interface JiraClientSettings {
+    baseUrl?: string;
+    email?: string;
+    apiToken?: string;
 }
 export interface JiraCredentials {
     baseUrl: string;
@@ -16,7 +18,7 @@ export interface JiraReadRequest {
     body?: unknown;
 }
 export interface JiraClientOptions {
-    env?: JiraClientEnv;
+    settings?: JiraClientSettings;
     fetchFn?: JiraFetch;
 }
 export interface JiraRequestError {
@@ -40,6 +42,6 @@ export type JiraReadResult<T> = {
     ok: false;
     error: JiraRequestError;
 };
-export declare function loadJiraCredentials(env?: JiraClientEnv): JiraCredentialsResult;
+export declare function loadJiraCredentials(settings?: JiraClientSettings): JiraCredentialsResult;
 export declare function jiraReadJson<T>(request: JiraReadRequest, options?: JiraClientOptions): Promise<JiraReadResult<T>>;
 export {};

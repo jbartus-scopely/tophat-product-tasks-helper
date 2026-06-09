@@ -37,7 +37,7 @@ export async function searchJiraIssues(
   params: JiraIssueSearchParams,
   options: JiraClientOptions = {},
 ): Promise<JiraIssueSearchResult> {
-  const credentialsResult = loadJiraCredentials(options.env);
+  const credentialsResult = loadJiraCredentials(options.settings);
   if (!credentialsResult.ok) return credentialsResult;
 
   const podFieldResult = await discoverJiraPodField(options);

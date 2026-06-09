@@ -1,18 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { discoverJiraPodField } from './jiraFields.js';
-import type { JiraClientEnv } from './jiraClient.js';
+import type { JiraClientSettings } from './jiraClient.js';
 
-const VALID_ENV: JiraClientEnv = {
-  JIRA_BASE_URL: 'https://example.atlassian.net/',
-  JIRA_EMAIL: 'product@example.com',
-  JIRA_API_TOKEN: 'secret-token',
+const VALID_SETTINGS: JiraClientSettings = {
+  baseUrl: 'https://example.atlassian.net/',
+  email: 'product@example.com',
+  apiToken: 'secret-token',
 };
 
 test('discovers the Pod field id through Jira field metadata', async () => {
   let requestedUrl = '';
   const result = await discoverJiraPodField({
-    env: VALID_ENV,
+    settings: VALID_SETTINGS,
     fetchFn: async (input) => {
       requestedUrl = input;
       return new Response(JSON.stringify([
@@ -31,7 +31,7 @@ test('discovers the Pod field id through Jira field metadata', async () => {
 
 test('matches only an exact Pod field name', async () => {
   const result = await discoverJiraPodField({
-    env: VALID_ENV,
+    settings: VALID_SETTINGS,
     fetchFn: async () => new Response(JSON.stringify([
       { id: 'customfield_lower', name: 'pod' },
       { id: 'customfield_spaced', name: 'Pod ' },
@@ -46,7 +46,7 @@ test('matches only an exact Pod field name', async () => {
 
 test('returns a non-fatal warning when Pod metadata is missing', async () => {
   const result = await discoverJiraPodField({
-    env: VALID_ENV,
+    settings: VALID_SETTINGS,
     fetchFn: async () => new Response(JSON.stringify([
       { id: 'customfield_11111', name: 'Team' },
     ])),
@@ -65,7 +65,7 @@ test('returns a non-fatal warning when Pod metadata is missing', async () => {
 
 test('does not include Jira credentials in discovery output', async () => {
   const result = await discoverJiraPodField({
-    env: VALID_ENV,
+    settings: VALID_SETTINGS,
     fetchFn: async () => new Response(JSON.stringify([])),
   });
 

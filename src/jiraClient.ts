@@ -1,9 +1,12 @@
-type JiraEnvKey = 'JIRA_BASE_URL' | 'JIRA_EMAIL' | 'JIRA_API_TOKEN';
 type JiraReadMethod = 'GET' | 'POST';
 type JiraFetch = (input: string, init?: RequestInit) => Promise<Response>;
 type JiraQueryValue = string | number | boolean | null | undefined;
 
-export interface JiraClientEnv extends Partial<Record<JiraEnvKey, string | undefined>> {}
+export interface JiraClientSettings {
+  baseUrl?: string;
+  email?: string;
+  apiToken?: string;
+}
 
 export interface JiraCredentials {
   baseUrl: string;
@@ -19,7 +22,7 @@ export interface JiraReadRequest {
 }
 
 export interface JiraClientOptions {
-  env?: JiraClientEnv;
+  settings?: JiraClientSettings;
   fetchFn?: JiraFetch;
 }
 
@@ -38,33 +41,32 @@ export type JiraReadResult<T> =
   | { ok: true; data: T; status: number }
   | { ok: false; error: JiraRequestError };
 
-// Required .env keys for Jira API token auth: JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN.
-const REQUIRED_JIRA_ENV: JiraEnvKey[] = ['JIRA_BASE_URL', 'JIRA_EMAIL', 'JIRA_API_TOKEN'];
+const REQUIRED_JIRA_SETTINGS: Array<keyof JiraClientSettings> = ['baseUrl', 'email', 'apiToken'];
 
-export function loadJiraCredentials(env: JiraClientEnv = process.env): JiraCredentialsResult {
-  const missing = REQUIRED_JIRA_ENV.filter((key) => !readEnvString(env, key));
+export function loadJiraCredentials(settings: JiraClientSettings = {}): JiraCredentialsResult {
+  const missing = REQUIRED_JIRA_SETTINGS.filter((key) => !readSettingString(settings, key));
 
   if (missing.length > 0) {
     return {
       ok: false,
       error: {
-        code: 'jira_env_missing',
-        message: 'Missing required Jira environment variable(s).',
+        code: 'jira_settings_missing',
+        message: 'Missing required Jira setting(s).',
         details: missing,
       },
     };
   }
 
-  const baseUrl = readEnvString(env, 'JIRA_BASE_URL');
-  const email = readEnvString(env, 'JIRA_EMAIL');
-  const apiToken = readEnvString(env, 'JIRA_API_TOKEN');
+  const baseUrl = readSettingString(settings, 'baseUrl');
+  const email = readSettingString(settings, 'email');
+  const apiToken = readSettingString(settings, 'apiToken');
 
   if (!isHttpUrl(baseUrl)) {
     return {
       ok: false,
       error: {
         code: 'jira_base_url_invalid',
-        message: 'JIRA_BASE_URL must be a valid HTTP or HTTPS URL.',
+        message: 'Jira base URL must be a valid HTTP or HTTPS URL.',
       },
     };
   }
@@ -83,7 +85,7 @@ export async function jiraReadJson<T>(
   request: JiraReadRequest,
   options: JiraClientOptions = {},
 ): Promise<JiraReadResult<T>> {
-  const credentialsResult = loadJiraCredentials(options.env);
+  const credentialsResult = loadJiraCredentials(options.settings);
   if (!credentialsResult.ok) return credentialsResult;
 
   const urlResult = buildJiraUrl(credentialsResult.credentials.baseUrl, request.path, request.query);
@@ -160,7 +162,7 @@ function buildJiraUrl(
       ok: false,
       error: {
         code: 'jira_path_invalid',
-        message: 'Jira API path must be relative to JIRA_BASE_URL.',
+        message: 'Jira API path must be relative to the configured Jira base URL.',
       },
     };
   }
@@ -182,8 +184,8 @@ function buildBasicAuthHeader(credentials: JiraCredentials): string {
   return `Basic ${token}`;
 }
 
-function readEnvString(env: JiraClientEnv, key: JiraEnvKey): string {
-  return (env[key] ?? '').trim();
+function readSettingString(settings: JiraClientSettings, key: keyof JiraClientSettings): string {
+  return (settings[key] ?? '').trim();
 }
 
 function isHttpUrl(value: string): boolean {

@@ -4,17 +4,17 @@ import * as jiraClient from './jiraClient.js';
 import {
   jiraReadJson,
   loadJiraCredentials,
-  type JiraClientEnv,
+  type JiraClientSettings,
 } from './jiraClient.js';
 
-const VALID_ENV: JiraClientEnv = {
-  JIRA_BASE_URL: 'https://example.atlassian.net/',
-  JIRA_EMAIL: 'product@example.com',
-  JIRA_API_TOKEN: 'secret-token',
+const VALID_SETTINGS: JiraClientSettings = {
+  baseUrl: 'https://example.atlassian.net/',
+  email: 'product@example.com',
+  apiToken: 'secret-token',
 };
 
-test('loads Jira credentials from required environment variables', () => {
-  const result = loadJiraCredentials(VALID_ENV);
+test('loads Jira credentials from explicit settings', () => {
+  const result = loadJiraCredentials(VALID_SETTINGS);
 
   assert.equal(result.ok, true);
   if (!result.ok) assert.fail('Expected Jira credentials to load.');
@@ -25,12 +25,12 @@ test('loads Jira credentials from required environment variables', () => {
   });
 });
 
-test('returns a structured error before network calls when required env is missing', async () => {
+test('returns a structured error before network calls when required settings are missing', async () => {
   let called = false;
   const result = await jiraReadJson(
     { path: '/rest/api/3/field' },
     {
-      env: { JIRA_BASE_URL: 'https://example.atlassian.net', JIRA_EMAIL: 'product@example.com' },
+      settings: { baseUrl: 'https://example.atlassian.net', email: 'product@example.com' },
       fetchFn: async () => {
         called = true;
         return new Response('{}');
@@ -40,9 +40,9 @@ test('returns a structured error before network calls when required env is missi
 
   assert.equal(called, false);
   assert.equal(result.ok, false);
-  if (result.ok) assert.fail('Expected missing env to fail.');
-  assert.equal(result.error.code, 'jira_env_missing');
-  assert.deepEqual(result.error.details, ['JIRA_API_TOKEN']);
+  if (result.ok) assert.fail('Expected missing settings to fail.');
+  assert.equal(result.error.code, 'jira_settings_missing');
+  assert.deepEqual(result.error.details, ['apiToken']);
 });
 
 test('applies Basic auth in the server-side request helper', async () => {
@@ -51,7 +51,7 @@ test('applies Basic auth in the server-side request helper', async () => {
   const result = await jiraReadJson<{ ok: boolean }>(
     { path: '/rest/api/3/field', query: { maxResults: 50 } },
     {
-      env: VALID_ENV,
+      settings: VALID_SETTINGS,
       fetchFn: async (input, init) => {
         requestedUrl = input;
         authorization = String(new Headers(init?.headers).get('Authorization'));
@@ -70,7 +70,7 @@ test('returns sanitized errors for Jira HTTP failures', async () => {
   const result = await jiraReadJson(
     { path: '/rest/api/3/field' },
     {
-      env: VALID_ENV,
+      settings: VALID_SETTINGS,
       fetchFn: async () => new Response('Authorization secret-token product@example.com', {
         status: 401,
         statusText: 'Unauthorized',
@@ -92,7 +92,7 @@ test('returns sanitized errors for network failures', async () => {
   const result = await jiraReadJson(
     { path: '/rest/api/3/field' },
     {
-      env: VALID_ENV,
+      settings: VALID_SETTINGS,
       fetchFn: async () => {
         throw new Error('secret-token product@example.com Authorization');
       },
@@ -120,7 +120,7 @@ test('rejects mutation HTTP methods before network calls', async () => {
   const result = await jiraReadJson(
     { path: '/rest/api/3/issue/ABC-1', method: 'DELETE' as any },
     {
-      env: VALID_ENV,
+      settings: VALID_SETTINGS,
       fetchFn: async () => {
         called = true;
         return new Response('{}');

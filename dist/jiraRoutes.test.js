@@ -1,6 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from './server.js';
+const VALID_SETTINGS = {
+    baseUrl: 'https://example.atlassian.net/',
+    email: 'product@example.com',
+    apiToken: 'secret-token',
+};
+const NORMALIZED_SETTINGS = {
+    baseUrl: 'https://example.atlassian.net',
+    email: 'product@example.com',
+    apiToken: 'secret-token',
+};
 const SECTIONS = [
     {
         id: 'coming',
@@ -9,7 +19,6 @@ const SECTIONS = [
     },
 ];
 test('returns saved Jira sections without requiring a loaded backlog', async () => {
-    process.env.JIRA_API_TOKEN = 'secret-token';
     const app = createApp({
         jiraConfigLoader: () => ({ ok: true, sections: SECTIONS }),
     });
@@ -22,10 +31,12 @@ test('returns saved Jira sections without requiring a loaded backlog', async () 
 });
 test('executes saved Jira sections and returns issues by section', async () => {
     const seenParams = [];
+    const seenOptions = [];
     const app = createApp({
         jiraConfigLoader: () => ({ ok: true, sections: SECTIONS }),
-        jiraIssueSearcher: async (params) => {
+        jiraIssueSearcher: async (params, options) => {
             seenParams.push(params);
+            seenOptions.push(options);
             return {
                 ok: true,
                 issues: [
@@ -48,7 +59,11 @@ test('executes saved Jira sections and returns issues by section', async () => {
             };
         },
     });
-    const response = await app.request('/api/jira/sections/search', { method: 'POST' });
+    const response = await app.request('/api/jira/sections/search', {
+        method: 'POST',
+        body: JSON.stringify({ settings: VALID_SETTINGS }),
+        headers: { 'Content-Type': 'application/json' },
+    });
     const body = await response.json();
     assert.equal(response.status, 200);
     assert.deepEqual(seenParams, [
@@ -58,21 +73,49 @@ test('executes saved Jira sections and returns issues by section', async () => {
             sourceSectionTitle: 'Coming soon',
         },
     ]);
+    assert.deepEqual(seenOptions, [{ settings: NORMALIZED_SETTINGS }]);
     assert.equal(body.sections[0].id, 'coming');
     assert.equal(body.sections[0].issues[0].sourceSectionId, 'coming');
     assert.equal(body.sections[0].issues[0].sourceSectionTitle, 'Coming soon');
 });
+test('rejects missing Jira settings before executing saved sections', async () => {
+    let called = false;
+    const app = createApp({
+        jiraConfigLoader: () => ({ ok: true, sections: SECTIONS }),
+        jiraIssueSearcher: async () => {
+            called = true;
+            return { ok: true, issues: [], warnings: [] };
+        },
+    });
+    const response = await app.request('/api/jira/sections/search', {
+        method: 'POST',
+        body: JSON.stringify({
+            settings: {
+                baseUrl: 'https://example.atlassian.net',
+                email: 'product@example.com',
+            },
+        }),
+        headers: { 'Content-Type': 'application/json' },
+    });
+    const body = await response.json();
+    assert.equal(response.status, 400);
+    assert.equal(called, false);
+    assert.match(body.error, /Missing required Jira setting/);
+    assert.deepEqual(body.details, ['apiToken']);
+});
 test('executes ad hoc JQL from the request body', async () => {
     let seenParams = null;
+    let seenOptions;
     const app = createApp({
-        jiraIssueSearcher: async (params) => {
+        jiraIssueSearcher: async (params, options) => {
             seenParams = params;
+            seenOptions = options;
             return { ok: true, issues: [], warnings: [] };
         },
     });
     const response = await app.request('/api/jira/search', {
         method: 'POST',
-        body: JSON.stringify({ jql: 'project = EXAMPLE' }),
+        body: JSON.stringify({ jql: 'project = EXAMPLE', settings: VALID_SETTINGS }),
         headers: { 'Content-Type': 'application/json' },
     });
     const body = await response.json();
@@ -82,6 +125,7 @@ test('executes ad hoc JQL from the request body', async () => {
         sourceSectionId: 'ad-hoc',
         sourceSectionTitle: 'Ad hoc JQL',
     });
+    assert.deepEqual(seenOptions, { settings: NORMALIZED_SETTINGS });
     assert.deepEqual(body, { issues: [], warnings: [] });
 });
 test('returns JSON error objects for Jira route failures', async () => {
@@ -101,39 +145,28 @@ test('returns JSON error objects for Jira route failures', async () => {
     assert.deepEqual(body, { error: 'Saved Jira sections config file was not found.' });
 });
 test('does not include Jira token values in Jira error responses', async () => {
-    const previousToken = process.env.JIRA_API_TOKEN;
-    process.env.JIRA_API_TOKEN = 'secret-token';
-    try {
-        const app = createApp({
-            jiraIssueSearcher: async () => ({
-                ok: false,
-                error: {
-                    code: 'jira_request_failed',
-                    message: 'Authorization failed for secret-token.',
-                    status: 401,
-                    details: ['secret-token'],
-                },
-            }),
-        });
-        const response = await app.request('/api/jira/search', {
-            method: 'POST',
-            body: JSON.stringify({ jql: 'project = EXAMPLE' }),
-            headers: { 'Content-Type': 'application/json' },
-        });
-        const serialized = JSON.stringify(await response.json());
-        assert.equal(response.status, 400);
-        assert.doesNotMatch(serialized, /secret-token/);
-        assert.doesNotMatch(serialized, /Authorization/i);
-        assert.match(serialized, /error/);
-    }
-    finally {
-        if (previousToken === undefined) {
-            delete process.env.JIRA_API_TOKEN;
-        }
-        else {
-            process.env.JIRA_API_TOKEN = previousToken;
-        }
-    }
+    const app = createApp({
+        jiraIssueSearcher: async () => ({
+            ok: false,
+            error: {
+                code: 'jira_request_failed',
+                message: 'Authorization failed for secret-token and product@example.com.',
+                status: 401,
+                details: ['secret-token', 'product@example.com'],
+            },
+        }),
+    });
+    const response = await app.request('/api/jira/search', {
+        method: 'POST',
+        body: JSON.stringify({ jql: 'project = EXAMPLE', settings: VALID_SETTINGS }),
+        headers: { 'Content-Type': 'application/json' },
+    });
+    const serialized = JSON.stringify(await response.json());
+    assert.equal(response.status, 400);
+    assert.doesNotMatch(serialized, /secret-token/);
+    assert.doesNotMatch(serialized, /product@example.com/);
+    assert.doesNotMatch(serialized, /Authorization/i);
+    assert.match(serialized, /error/);
 });
 test('returns non-fatal Pod warnings with empty Pod values', async () => {
     const app = createApp({
@@ -164,7 +197,11 @@ test('returns non-fatal Pod warnings with empty Pod values', async () => {
             ],
         }),
     });
-    const response = await app.request('/api/jira/sections/search', { method: 'POST' });
+    const response = await app.request('/api/jira/sections/search', {
+        method: 'POST',
+        body: JSON.stringify({ settings: VALID_SETTINGS }),
+        headers: { 'Content-Type': 'application/json' },
+    });
     const body = await response.json();
     assert.equal(response.status, 200);
     assert.equal(body.sections[0].issues[0].pod, '');

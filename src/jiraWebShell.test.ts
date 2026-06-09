@@ -158,3 +158,36 @@ test('Jira All Data view omits ad hoc JQL controls', () => {
   assert.doesNotMatch(components, /wireJiraJqlHistory/);
   assert.doesNotMatch(components, /getJiraQueryHistory/);
 });
+
+test('Jira settings are stored in browser storage and validated before saving', () => {
+  const html = readProjectFile('src/web/index.html');
+  const app = readProjectFile('src/web/app.js');
+  const shared = readProjectFile('src/web/shared.js');
+  const components = readProjectFile('src/web/components.js');
+
+  assert.match(html, /id="jira-settings-btn"/);
+  assert.match(html, /aria-label="Jira settings"/);
+  assert.match(html, /id="modal-root"/);
+  assert.match(shared, /pth_jira_settings/);
+  assert.match(shared, /export function getJiraSettings/);
+  assert.match(shared, /export function saveJiraSettings/);
+  assert.match(shared, /export function normalizeJiraSettings/);
+  assert.match(shared, /baseUrl, email, apiToken/);
+  assert.match(shared, /replace\(\/\\\/\+\$\/, ''\)/);
+  assert.match(app, /getJiraSettings\(\)/);
+  assert.match(app, /settings: getJiraSettings\(\)/);
+  assert.match(app, /saveJiraSettings\(candidate\)/);
+  assert.match(app, /JIRA_MASKED_TOKEN = '\*\*\*\*\*\*\*\*'/);
+  assert.match(app, /modal\.tokenMasked \? state\.jira\.settings\?\.apiToken : modal\.apiToken/);
+  assert.match(app, /apiPost\('\/api\/jira\/sections\/search', \{ settings \}\)/);
+  assert.match(app, /jiraLoadValidationError/);
+  assert.match(app, /renderJiraSettingsModal/);
+  assert.match(components, /jiraSettingsRequiredHtml/);
+  assert.match(components, /data-open-jira-settings/);
+  assert.match(components, /settings-modal-backdrop/);
+  assert.match(components, /id="jira-settings-base-url"/);
+  assert.match(components, /id="jira-settings-email"/);
+  assert.match(components, /id="jira-settings-api-token"/);
+  assert.match(components, /data-jira-settings-save/);
+  assert.match(components, /settings-error/);
+});

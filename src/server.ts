@@ -7,6 +7,7 @@ import { parseBacklogFromString } from './parser.js';
 import { computeStats } from './api.js';
 import { loadJiraSavedSectionsConfig } from './jiraConfig.js';
 import { searchJiraIssues, type JiraIssueSearchParams, type JiraIssueSearchResult } from './jiraSearch.js';
+import { loadJiraCredentials, type JiraClientOptions, type JiraClientSettings } from './jiraClient.js';
 import type {
   BacklogData,
   JiraConfigError,
@@ -27,7 +28,7 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 type JiraConfigLoader = () => JiraSavedSectionsConfigResult;
-type JiraIssueSearcher = (params: JiraIssueSearchParams) => Promise<JiraIssueSearchResult>;
+type JiraIssueSearcher = (params: JiraIssueSearchParams, options?: JiraClientOptions) => Promise<JiraIssueSearchResult>;
 
 export interface ServerAppOptions {
   jiraConfigLoader?: JiraConfigLoader;
@@ -144,13 +145,19 @@ export function createApp(options: ServerAppOptions = {}): Hono {
     const config = jiraConfigLoader();
     if (!config.ok) return c.json(jiraConfigErrorResponse(config.error), 400);
 
+    const body = await parseJsonBody(c.req.raw, { allowEmpty: true });
+    if (!body.ok) return c.json({ error: body.error }, 400);
+
+    const settingsResult = parseJiraSettings(body.value);
+    if (!settingsResult.ok) return c.json(routeErrorResponse(settingsResult.error), routeErrorStatus(settingsResult.error));
+
     const sections = [];
     for (const section of config.sections) {
       const result = await jiraIssueSearcher({
         jql: section.jql,
         sourceSectionId: section.id,
         sourceSectionTitle: section.title,
-      });
+      }, { settings: settingsResult.credentials });
 
       if (result.ok) {
         sections.push({
@@ -163,7 +170,7 @@ export function createApp(options: ServerAppOptions = {}): Hono {
           ...section,
           issues: [],
           warnings: [],
-          error: routeErrorMessage(result.error),
+          error: routeErrorMessage(result.error, settingsResult.credentials),
         });
       }
     }
@@ -178,14 +185,17 @@ export function createApp(options: ServerAppOptions = {}): Hono {
     const jql = typeof body.value.jql === 'string' ? body.value.jql.trim() : '';
     if (!jql) return c.json({ error: 'Missing "jql" field.' }, 400);
 
+    const settingsResult = parseJiraSettings(body.value);
+    if (!settingsResult.ok) return c.json(routeErrorResponse(settingsResult.error), routeErrorStatus(settingsResult.error));
+
     const result = await jiraIssueSearcher({
       jql,
       sourceSectionId: 'ad-hoc',
       sourceSectionTitle: 'Ad hoc JQL',
-    });
+    }, { settings: settingsResult.credentials });
 
     if (!result.ok) {
-      return c.json(routeErrorResponse(result.error), routeErrorStatus(result.error));
+      return c.json(routeErrorResponse(result.error, settingsResult.credentials), routeErrorStatus(result.error));
     }
 
     return c.json({
@@ -219,33 +229,36 @@ if (isMain) {
 
 function jiraConfigErrorResponse(error: JiraConfigError): { error: string; details?: string[] } {
   const response: { error: string; details?: string[] } = { error: sanitizeRouteText(error.message) };
-  if (error.details?.length) response.details = error.details.map(sanitizeRouteText);
+  if (error.details?.length) response.details = error.details.map(detail => sanitizeRouteText(detail));
   return response;
 }
 
-function routeErrorResponse(error: { message: string; details?: string[] }): { error: string; details?: string[] } {
-  const response: { error: string; details?: string[] } = { error: routeErrorMessage(error) };
-  if (error.details?.length) response.details = error.details.map(sanitizeRouteText);
+function routeErrorResponse(error: { message: string; details?: string[] }, settings?: JiraClientSettings): { error: string; details?: string[] } {
+  const response: { error: string; details?: string[] } = { error: routeErrorMessage(error, settings) };
+  if (error.details?.length) response.details = error.details.map(detail => sanitizeRouteText(detail, settings));
   return response;
 }
 
-function routeErrorMessage(error: { message: string }): string {
-  return sanitizeRouteText(error.message || 'Jira request failed.');
+function routeErrorMessage(error: { message: string }, settings?: JiraClientSettings): string {
+  return sanitizeRouteText(error.message || 'Jira request failed.', settings);
 }
 
 function routeErrorStatus(error: { code?: string; status?: number }): 400 | 502 | 500 {
   if (error.status && error.status >= 400 && error.status < 500) return 400;
   if (error.status && error.status >= 500) return 502;
-  if (error.code?.includes('env') || error.code?.includes('invalid')) return 400;
+  if (error.code?.includes('settings') || error.code?.includes('missing') || error.code?.includes('invalid')) return 400;
   return 500;
 }
 
-async function parseJsonBody(request: Request): Promise<
+async function parseJsonBody(request: Request, options: { allowEmpty?: boolean } = {}): Promise<
   | { ok: true; value: Record<string, unknown> }
   | { ok: false; error: string }
 > {
+  const raw = await request.text();
+  if (!raw.trim() && options.allowEmpty) return { ok: true, value: {} };
+
   try {
-    const value = await request.json();
+    const value = JSON.parse(raw);
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       return { ok: true, value: value as Record<string, unknown> };
     }
@@ -255,10 +268,29 @@ async function parseJsonBody(request: Request): Promise<
   }
 }
 
-function sanitizeRouteText(value: string): string {
+function parseJiraSettings(body: Record<string, unknown>): ReturnType<typeof loadJiraCredentials> {
+  const settingsValue = body.settings;
+  const settings = isRecord(settingsValue) ? settingsValue : {};
+  return loadJiraCredentials({
+    baseUrl: readBodyString(settings, 'baseUrl'),
+    email: readBodyString(settings, 'email'),
+    apiToken: readBodyString(settings, 'apiToken'),
+  });
+}
+
+function readBodyString(body: Record<string, unknown>, key: keyof JiraClientSettings): string {
+  const value = body[key];
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function sanitizeRouteText(value: string, settings?: JiraClientSettings): string {
   let sanitized = value;
-  for (const secret of [process.env.JIRA_API_TOKEN, process.env.JIRA_EMAIL].filter(Boolean)) {
+  for (const secret of [settings?.apiToken, settings?.email].filter(Boolean)) {
     sanitized = sanitized.split(secret as string).join('[redacted]');
   }
   return sanitized.replace(/authorization/gi, '[redacted]');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

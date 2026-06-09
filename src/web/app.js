@@ -1,5 +1,9 @@
 import {
   api,
+  apiPost,
+  getJiraSettings,
+  normalizeJiraSettings,
+  saveJiraSettings,
   getJiraDashboardVersions,
   saveJiraDashboardVersions,
   getJiraAllDataFilters,
@@ -13,7 +17,14 @@ import {
   getCsvLists,
   saveCsvLists,
 } from './shared.js';
-import { renderJiraView, renderCsvDashboardView, renderCsvAllDataView } from './components.js';
+import {
+  renderJiraView,
+  renderJiraSettingsModal,
+  renderCsvDashboardView,
+  renderCsvAllDataView,
+} from './components.js';
+
+const JIRA_MASKED_TOKEN = '********';
 
 let state = {
   backlogLoaded: false,
@@ -50,6 +61,16 @@ let state = {
     },
   },
   jira: {
+    settings: getJiraSettings(),
+    settingsModal: {
+      open: false,
+      baseUrl: '',
+      email: '',
+      apiToken: '',
+      tokenMasked: false,
+      validating: false,
+      error: '',
+    },
     activeTab: 'dashboard',
     status: 'idle',
     sections: [],
@@ -83,6 +104,8 @@ const $backlogBadge = document.getElementById('backlog-badge');
 const $csvInput = document.getElementById('csv-input');
 const $dropZone = document.getElementById('drop-zone');
 const $csvListNav = document.getElementById('csv-list-nav');
+const $modalRoot = document.getElementById('modal-root');
+const $jiraSettingsBtn = document.getElementById('jira-settings-btn');
 
 const VIEW_TITLES = {
   'csv-dashboard': 'CSV Dashboard',
@@ -251,7 +274,7 @@ function route() {
   if (isJiraView(view)) {
     state.jira.activeTab = jiraTabForView(view);
     renderJira();
-    if (state.jira.status === 'idle' && !state.jira.loaded) {
+    if (state.jira.settings && state.jira.status === 'idle' && !state.jira.loaded) {
       loadJiraSections();
     }
   } else if (isCsvView(view)) {
@@ -269,6 +292,7 @@ function route() {
   }
 
   if (window.lucide) lucide.createIcons();
+  renderJiraSettings();
 }
 
 function renderCsvView(view) {
@@ -844,6 +868,7 @@ function renderJira(options = {}) {
   const dropdownScrollSnapshot = options.preserveDropdownScroll ? getJiraDropdownScrollSnapshot() : null;
   renderJiraView($view, state, {
     onRefresh: refreshJira,
+    onConfigureSettings: openJiraSettingsModal,
     onDashboardTabChange: setJiraDashboardTab,
     onDashboardVersionChange: setJiraDashboardVersions,
     onDashboardSearchChange: setJiraDashboardSearch,
@@ -1001,8 +1026,32 @@ function refreshJira() {
   loadJiraSections();
 }
 
-async function loadJiraSections() {
+async function fetchJiraSections(settings) {
+  return apiPost('/api/jira/sections/search', { settings });
+}
+
+function jiraLoadValidationError(result) {
+  if (!result || typeof result !== 'object') return 'Jira validation failed before receiving a response.';
+  if (result.error) return result.error;
+  const sections = Array.isArray(result.sections) ? result.sections : [];
+  const failedSection = sections.find(section => section?.error);
+  if (!failedSection) return '';
+  return failedSection.error || `Jira section "${failedSection.title || failedSection.id || 'unknown'}" failed.`;
+}
+
+async function loadJiraSections(settings = state.jira.settings) {
   if (state.jira.status === 'loading') return;
+  if (!settings) {
+    state.jira = {
+      ...state.jira,
+      status: 'idle',
+      error: null,
+      loaded: false,
+      startedAt: null,
+    };
+    if (isJiraView(normalizeView(getView()))) renderJira();
+    return;
+  }
 
   state.jira = {
     ...state.jira,
@@ -1015,13 +1064,14 @@ async function loadJiraSections() {
   if (isJiraView(normalizeView(getView()))) renderJira();
 
   try {
-    const result = await api('/api/jira/sections/search', { method: 'POST' });
-    if (result.error) {
+    const result = await fetchJiraSections(settings);
+    const validationError = jiraLoadValidationError(result);
+    if (validationError) {
       state.jira = {
         ...state.jira,
         status: 'error',
         sections: [],
-        error: result.error,
+        error: validationError,
         loaded: false,
         startedAt: null,
       };
@@ -1052,6 +1102,138 @@ async function loadJiraSections() {
   }
 
   if (isJiraView(normalizeView(getView()))) renderJira();
+}
+
+function openJiraSettingsModal() {
+  const settings = state.jira.settings;
+  state.jira = {
+    ...state.jira,
+    settingsModal: {
+      open: true,
+      baseUrl: settings?.baseUrl || '',
+      email: settings?.email || '',
+      apiToken: settings?.apiToken ? JIRA_MASKED_TOKEN : '',
+      tokenMasked: Boolean(settings?.apiToken),
+      validating: false,
+      error: '',
+    },
+  };
+  renderJiraSettings();
+}
+
+function closeJiraSettingsModal() {
+  state.jira = {
+    ...state.jira,
+    settingsModal: {
+      ...state.jira.settingsModal,
+      open: false,
+      validating: false,
+      error: '',
+    },
+  };
+  renderJiraSettings();
+}
+
+function setJiraSettingsField(name, value) {
+  const nextModal = {
+    ...state.jira.settingsModal,
+    [name]: value,
+  };
+  if (name === 'apiToken') {
+    nextModal.tokenMasked = value === JIRA_MASKED_TOKEN && Boolean(state.jira.settings?.apiToken);
+  }
+  state.jira = {
+    ...state.jira,
+    settingsModal: nextModal,
+  };
+}
+
+function settingsFromModal() {
+  const modal = state.jira.settingsModal || {};
+  const apiToken = modal.tokenMasked ? state.jira.settings?.apiToken : modal.apiToken;
+  return normalizeJiraSettings({
+    baseUrl: modal.baseUrl,
+    email: modal.email,
+    apiToken,
+  });
+}
+
+async function saveJiraSettingsFromModal() {
+  const candidate = settingsFromModal();
+  if (!candidate) {
+    state.jira = {
+      ...state.jira,
+      settingsModal: {
+        ...state.jira.settingsModal,
+        error: 'Jira base URL, email, and API token are required.',
+      },
+    };
+    renderJiraSettings();
+    return;
+  }
+
+  state.jira = {
+    ...state.jira,
+    settingsModal: {
+      ...state.jira.settingsModal,
+      validating: true,
+      error: '',
+    },
+  };
+  renderJiraSettings();
+
+  try {
+    const result = await fetchJiraSections(candidate);
+    const validationError = jiraLoadValidationError(result);
+    if (validationError) throw new Error(validationError);
+
+    const saved = saveJiraSettings(candidate);
+    if (!saved) throw new Error('Jira base URL, email, and API token are required.');
+
+    state.jira = {
+      ...state.jira,
+      settings: saved,
+      settingsModal: {
+        open: false,
+        baseUrl: '',
+        email: '',
+        apiToken: '',
+        tokenMasked: false,
+        validating: false,
+        error: '',
+      },
+      status: 'done',
+      sections: result.sections || [],
+      error: null,
+      loaded: true,
+      startedAt: null,
+      lastLoadedAt: Date.now(),
+      dashboard: {
+        ...state.jira.dashboard,
+        expandedVersions: {},
+      },
+    };
+    renderJiraSettings();
+    if (isJiraView(normalizeView(getView()))) renderJira();
+  } catch (error) {
+    state.jira = {
+      ...state.jira,
+      settingsModal: {
+        ...state.jira.settingsModal,
+        validating: false,
+        error: error.message || 'Jira validation failed.',
+      },
+    };
+    renderJiraSettings();
+  }
+}
+
+function renderJiraSettings() {
+  renderJiraSettingsModal($modalRoot, state.jira.settingsModal, {
+    onClose: closeJiraSettingsModal,
+    onFieldChange: setJiraSettingsField,
+    onSave: saveJiraSettingsFromModal,
+  });
 }
 
 function showEmptyState() {
@@ -1088,6 +1270,7 @@ async function uploadFile(file) {
   }
 }
 
+$jiraSettingsBtn?.addEventListener('click', openJiraSettingsModal);
 document.getElementById('upload-btn').addEventListener('click', () => $csvInput.click());
 $csvInput.addEventListener('change', (e) => {
   if (e.target.files[0]) uploadFile(e.target.files[0]);

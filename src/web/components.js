@@ -1756,6 +1756,15 @@ function jiraEmptyHtml(title, body) {
   </div>`;
 }
 
+function jiraSettingsRequiredHtml() {
+  return `<div class="empty-state jira-empty jira-settings-required">
+    <i data-lucide="settings" style="width:64px;height:64px;opacity:0.5;margin-bottom:16px"></i>
+    <h2>Configure Jira settings</h2>
+    <p>Set the Jira base URL, email, and API token before loading Jira data.</p>
+    <button type="button" class="btn btn-primary" data-open-jira-settings><i data-lucide="settings" style="width:14px;height:14px"></i> Configure settings</button>
+  </div>`;
+}
+
 function jiraInlineEmptyHtml(message) {
   return `<div class="jira-inline-empty">${esc(message)}</div>`;
 }
@@ -2142,17 +2151,20 @@ export function renderJiraView($el, state, actions = {}) {
   const activeTab = jira.activeTab === 'all-data' ? 'all-data' : 'dashboard';
   const sections = Array.isArray(jira.sections) ? jira.sections : [];
   const isLoading = jira.status === 'loading';
+  const hasSettings = Boolean(jira.settings);
   const lastLoaded = jira.lastLoadedAt ? new Date(jira.lastLoadedAt).toLocaleString() : '';
 
   let html = '<div class="jira-shell">';
   html += '<div class="jira-toolbar">';
   html += '<div class="jira-actions">';
   if (lastLoaded) html += `<span class="jira-last-loaded">Updated ${esc(lastLoaded)}</span>`;
-  html += `<button type="button" class="btn btn-primary" id="jira-refresh" ${isLoading ? 'disabled' : ''}><i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Refresh</button>`;
+  html += `<button type="button" class="btn btn-primary" id="jira-refresh" ${isLoading || !hasSettings ? 'disabled' : ''}><i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Refresh</button>`;
   html += '</div></div>';
 
   if (isLoading) {
     html += simpleSpinnerHtml('Loading Jira data...');
+  } else if (!hasSettings) {
+    html += jiraSettingsRequiredHtml();
   } else if (jira.status === 'error') {
     html += errorHtml(jira.error || 'Jira request failed.');
   } else if (activeTab === 'dashboard') {
@@ -2166,6 +2178,7 @@ export function renderJiraView($el, state, actions = {}) {
   openMultiMenus($el, jira.openMultiDropdown || null);
 
   document.getElementById('jira-refresh')?.addEventListener('click', () => actions.onRefresh?.());
+  $el.querySelector('[data-open-jira-settings]')?.addEventListener('click', () => actions.onConfigureSettings?.());
   $el.querySelectorAll('[data-jira-dashboard-tab]').forEach(button => {
     button.addEventListener('click', () => {
       const tab = button.dataset.jiraDashboardTab;
@@ -2218,6 +2231,66 @@ export function renderJiraView($el, state, actions = {}) {
     header.addEventListener('click', () => actions.onSortChange?.(header.dataset.jiraSort));
   });
   wireJiraVersionBugTooltips($el);
+
+  if (window.lucide) lucide.createIcons();
+}
+
+export function renderJiraSettingsModal($el, modal, actions = {}) {
+  if (!$el) return;
+  if (!modal?.open) {
+    $el.innerHTML = '';
+    return;
+  }
+
+  const validating = Boolean(modal.validating);
+  const error = modal.error ? `<div class="settings-error" role="alert">${esc(modal.error)}</div>` : '';
+  $el.innerHTML = `<div class="settings-modal-backdrop" data-jira-settings-close>
+    <section class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="jira-settings-title">
+      <div class="settings-modal-header">
+        <div>
+          <h2 id="jira-settings-title">Jira settings</h2>
+          <p>Configure the Jira connection used by dashboard requests.</p>
+        </div>
+        <button type="button" class="icon-btn" data-jira-settings-close aria-label="Close Jira settings"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+      </div>
+      <div class="settings-form">
+        <label class="ai-form-field settings-field">
+          <span>Jira base URL</span>
+          <input type="url" id="jira-settings-base-url" value="${esc(modal.baseUrl || '')}" placeholder="https://scopely.atlassian.net" autocomplete="off"${validating ? ' disabled' : ''}>
+        </label>
+        <label class="ai-form-field settings-field">
+          <span>Email</span>
+          <input type="email" id="jira-settings-email" value="${esc(modal.email || '')}" placeholder="name@example.com" autocomplete="username"${validating ? ' disabled' : ''}>
+        </label>
+        <label class="ai-form-field settings-field">
+          <span>API token</span>
+          <input type="password" id="jira-settings-api-token" value="${esc(modal.apiToken || '')}" autocomplete="current-password"${validating ? ' disabled' : ''}>
+        </label>
+        ${error}
+      </div>
+      <div class="settings-modal-actions">
+        <button type="button" class="btn" data-jira-settings-close ${validating ? 'disabled' : ''}>Cancel</button>
+        <button type="button" class="btn btn-primary" data-jira-settings-save ${validating ? 'disabled' : ''}>
+          ${validating ? '<span class="mini-spinner"></span> Validating' : '<i data-lucide="save" style="width:14px;height:14px"></i> Save'}
+        </button>
+      </div>
+    </section>
+  </div>`;
+
+  const backdrop = $el.querySelector('.settings-modal-backdrop');
+  backdrop?.addEventListener('click', (event) => {
+    if (event.target === backdrop && !validating) actions.onClose?.();
+  });
+  $el.querySelectorAll('[data-jira-settings-close]').forEach(button => {
+    button.addEventListener('click', (event) => {
+      if (event.currentTarget === backdrop) return;
+      if (!validating) actions.onClose?.();
+    });
+  });
+  $el.querySelector('#jira-settings-base-url')?.addEventListener('input', (event) => actions.onFieldChange?.('baseUrl', event.target.value));
+  $el.querySelector('#jira-settings-email')?.addEventListener('input', (event) => actions.onFieldChange?.('email', event.target.value));
+  $el.querySelector('#jira-settings-api-token')?.addEventListener('input', (event) => actions.onFieldChange?.('apiToken', event.target.value));
+  $el.querySelector('[data-jira-settings-save]')?.addEventListener('click', () => actions.onSave?.());
 
   if (window.lucide) lucide.createIcons();
 }

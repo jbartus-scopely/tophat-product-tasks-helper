@@ -5,7 +5,7 @@ const SEARCH_PAGE_SIZE = 100;
 const SEARCH_ISSUE_CAP = 500;
 const BASE_SEARCH_FIELDS = ['summary', 'issuetype', 'status', 'priority', 'fixVersions', 'labels', 'updated'];
 export async function searchJiraIssues(params, options = {}) {
-    const credentialsResult = loadJiraCredentials(options.env);
+    const credentialsResult = loadJiraCredentials(options.settings);
     if (!credentialsResult.ok)
         return credentialsResult;
     const podFieldResult = await discoverJiraPodField(options);

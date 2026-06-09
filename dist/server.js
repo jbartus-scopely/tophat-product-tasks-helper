@@ -7,6 +7,7 @@ import { parseBacklogFromString } from './parser.js';
 import { computeStats } from './api.js';
 import { loadJiraSavedSectionsConfig } from './jiraConfig.js';
 import { searchJiraIssues } from './jiraSearch.js';
+import { loadJiraCredentials } from './jiraClient.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const WEB_DIR = resolve(__dirname, '..', 'src', 'web');
@@ -112,13 +113,19 @@ export function createApp(options = {}) {
         const config = jiraConfigLoader();
         if (!config.ok)
             return c.json(jiraConfigErrorResponse(config.error), 400);
+        const body = await parseJsonBody(c.req.raw, { allowEmpty: true });
+        if (!body.ok)
+            return c.json({ error: body.error }, 400);
+        const settingsResult = parseJiraSettings(body.value);
+        if (!settingsResult.ok)
+            return c.json(routeErrorResponse(settingsResult.error), routeErrorStatus(settingsResult.error));
         const sections = [];
         for (const section of config.sections) {
             const result = await jiraIssueSearcher({
                 jql: section.jql,
                 sourceSectionId: section.id,
                 sourceSectionTitle: section.title,
-            });
+            }, { settings: settingsResult.credentials });
             if (result.ok) {
                 sections.push({
                     ...section,
@@ -131,7 +138,7 @@ export function createApp(options = {}) {
                     ...section,
                     issues: [],
                     warnings: [],
-                    error: routeErrorMessage(result.error),
+                    error: routeErrorMessage(result.error, settingsResult.credentials),
                 });
             }
         }
@@ -144,13 +151,16 @@ export function createApp(options = {}) {
         const jql = typeof body.value.jql === 'string' ? body.value.jql.trim() : '';
         if (!jql)
             return c.json({ error: 'Missing "jql" field.' }, 400);
+        const settingsResult = parseJiraSettings(body.value);
+        if (!settingsResult.ok)
+            return c.json(routeErrorResponse(settingsResult.error), routeErrorStatus(settingsResult.error));
         const result = await jiraIssueSearcher({
             jql,
             sourceSectionId: 'ad-hoc',
             sourceSectionTitle: 'Ad hoc JQL',
-        });
+        }, { settings: settingsResult.credentials });
         if (!result.ok) {
-            return c.json(routeErrorResponse(result.error), routeErrorStatus(result.error));
+            return c.json(routeErrorResponse(result.error, settingsResult.credentials), routeErrorStatus(result.error));
         }
         return c.json({
             issues: result.issues,
@@ -177,30 +187,33 @@ if (isMain) {
 function jiraConfigErrorResponse(error) {
     const response = { error: sanitizeRouteText(error.message) };
     if (error.details?.length)
-        response.details = error.details.map(sanitizeRouteText);
+        response.details = error.details.map(detail => sanitizeRouteText(detail));
     return response;
 }
-function routeErrorResponse(error) {
-    const response = { error: routeErrorMessage(error) };
+function routeErrorResponse(error, settings) {
+    const response = { error: routeErrorMessage(error, settings) };
     if (error.details?.length)
-        response.details = error.details.map(sanitizeRouteText);
+        response.details = error.details.map(detail => sanitizeRouteText(detail, settings));
     return response;
 }
-function routeErrorMessage(error) {
-    return sanitizeRouteText(error.message || 'Jira request failed.');
+function routeErrorMessage(error, settings) {
+    return sanitizeRouteText(error.message || 'Jira request failed.', settings);
 }
 function routeErrorStatus(error) {
     if (error.status && error.status >= 400 && error.status < 500)
         return 400;
     if (error.status && error.status >= 500)
         return 502;
-    if (error.code?.includes('env') || error.code?.includes('invalid'))
+    if (error.code?.includes('settings') || error.code?.includes('missing') || error.code?.includes('invalid'))
         return 400;
     return 500;
 }
-async function parseJsonBody(request) {
+async function parseJsonBody(request, options = {}) {
+    const raw = await request.text();
+    if (!raw.trim() && options.allowEmpty)
+        return { ok: true, value: {} };
     try {
-        const value = await request.json();
+        const value = JSON.parse(raw);
         if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
             return { ok: true, value: value };
         }
@@ -210,11 +223,27 @@ async function parseJsonBody(request) {
         return { ok: false, error: 'Request body must be valid JSON.' };
     }
 }
-function sanitizeRouteText(value) {
+function parseJiraSettings(body) {
+    const settingsValue = body.settings;
+    const settings = isRecord(settingsValue) ? settingsValue : {};
+    return loadJiraCredentials({
+        baseUrl: readBodyString(settings, 'baseUrl'),
+        email: readBodyString(settings, 'email'),
+        apiToken: readBodyString(settings, 'apiToken'),
+    });
+}
+function readBodyString(body, key) {
+    const value = body[key];
+    return typeof value === 'string' ? value.trim() : '';
+}
+function sanitizeRouteText(value, settings) {
     let sanitized = value;
-    for (const secret of [process.env.JIRA_API_TOKEN, process.env.JIRA_EMAIL].filter(Boolean)) {
+    for (const secret of [settings?.apiToken, settings?.email].filter(Boolean)) {
         sanitized = sanitized.split(secret).join('[redacted]');
     }
     return sanitized.replace(/authorization/gi, '[redacted]');
+}
+function isRecord(value) {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 //# sourceMappingURL=server.js.map

@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { type JiraIssueSearchParams, type JiraIssueSearchResult } from './jiraSearch.js';
+import { type JiraClientOptions } from './jiraClient.js';
 import type { JiraSavedSectionsConfigResult } from './types.js';
 type JiraConfigLoader = () => JiraSavedSectionsConfigResult;
-type JiraIssueSearcher = (params: JiraIssueSearchParams) => Promise<JiraIssueSearchResult>;
+type JiraIssueSearcher = (params: JiraIssueSearchParams, options?: JiraClientOptions) => Promise<JiraIssueSearchResult>;
 export interface ServerAppOptions {
     jiraConfigLoader?: JiraConfigLoader;
     jiraIssueSearcher?: JiraIssueSearcher;

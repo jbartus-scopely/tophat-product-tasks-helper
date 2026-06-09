@@ -1,26 +1,25 @@
-// Required .env keys for Jira API token auth: JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN.
-const REQUIRED_JIRA_ENV = ['JIRA_BASE_URL', 'JIRA_EMAIL', 'JIRA_API_TOKEN'];
-export function loadJiraCredentials(env = process.env) {
-    const missing = REQUIRED_JIRA_ENV.filter((key) => !readEnvString(env, key));
+const REQUIRED_JIRA_SETTINGS = ['baseUrl', 'email', 'apiToken'];
+export function loadJiraCredentials(settings = {}) {
+    const missing = REQUIRED_JIRA_SETTINGS.filter((key) => !readSettingString(settings, key));
     if (missing.length > 0) {
         return {
             ok: false,
             error: {
-                code: 'jira_env_missing',
-                message: 'Missing required Jira environment variable(s).',
+                code: 'jira_settings_missing',
+                message: 'Missing required Jira setting(s).',
                 details: missing,
             },
         };
     }
-    const baseUrl = readEnvString(env, 'JIRA_BASE_URL');
-    const email = readEnvString(env, 'JIRA_EMAIL');
-    const apiToken = readEnvString(env, 'JIRA_API_TOKEN');
+    const baseUrl = readSettingString(settings, 'baseUrl');
+    const email = readSettingString(settings, 'email');
+    const apiToken = readSettingString(settings, 'apiToken');
     if (!isHttpUrl(baseUrl)) {
         return {
             ok: false,
             error: {
                 code: 'jira_base_url_invalid',
-                message: 'JIRA_BASE_URL must be a valid HTTP or HTTPS URL.',
+                message: 'Jira base URL must be a valid HTTP or HTTPS URL.',
             },
         };
     }
@@ -34,7 +33,7 @@ export function loadJiraCredentials(env = process.env) {
     };
 }
 export async function jiraReadJson(request, options = {}) {
-    const credentialsResult = loadJiraCredentials(options.env);
+    const credentialsResult = loadJiraCredentials(options.settings);
     if (!credentialsResult.ok)
         return credentialsResult;
     const urlResult = buildJiraUrl(credentialsResult.credentials.baseUrl, request.path, request.query);
@@ -103,7 +102,7 @@ function buildJiraUrl(baseUrl, path, query) {
             ok: false,
             error: {
                 code: 'jira_path_invalid',
-                message: 'Jira API path must be relative to JIRA_BASE_URL.',
+                message: 'Jira API path must be relative to the configured Jira base URL.',
             },
         };
     }
@@ -122,8 +121,8 @@ function buildBasicAuthHeader(credentials) {
     const token = Buffer.from(`${credentials.email}:${credentials.apiToken}`).toString('base64');
     return `Basic ${token}`;
 }
-function readEnvString(env, key) {
-    return (env[key] ?? '').trim();
+function readSettingString(settings, key) {
+    return (settings[key] ?? '').trim();
 }
 function isHttpUrl(value) {
     try {
