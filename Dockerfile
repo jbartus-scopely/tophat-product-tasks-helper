@@ -19,7 +19,7 @@ COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/web ./src/web
-COPY --from=build /app/src/jiraSavedSections.json ./src/jiraSavedSections.json
+COPY --from=build /app/config ./config
 
 EXPOSE 3000
 CMD ["npm", "start"]
